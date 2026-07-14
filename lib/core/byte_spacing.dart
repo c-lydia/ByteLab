@@ -1,5 +1,3 @@
-import 'package:flutter/material.dart';
-
 class ByteSpacing {
   static const xs = 4.0;
   static const sm = 8.0;

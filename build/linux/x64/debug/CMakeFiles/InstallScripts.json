@@ -1,0 +1,11 @@
+{
+	"InstallScripts" : 
+	[
+		"/home/chheng-lydia/projects/ByteLab/bytelab/build/linux/x64/debug/cmake_install.cmake",
+		"/home/chheng-lydia/projects/ByteLab/bytelab/build/linux/x64/debug/flutter/cmake_install.cmake",
+		"/home/chheng-lydia/projects/ByteLab/bytelab/build/linux/x64/debug/runner/cmake_install.cmake",
+		"/home/chheng-lydia/projects/ByteLab/bytelab/build/linux/x64/debug/plugins/flutter_libserialport/cmake_install.cmake",
+		"/home/chheng-lydia/projects/ByteLab/bytelab/build/linux/x64/debug/plugins/flutter_libserialport/libserialport/cmake_install.cmake"
+	],
+	"Parallel" : false
+}
