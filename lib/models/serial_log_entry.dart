@@ -6,7 +6,7 @@ enum LogLevel {
   error,
   warn,
   info,
-  debug, 
+  debug,
   verbose,
   unknown;
 
@@ -60,19 +60,27 @@ class SerialLogEntry {
     required this.message,
     this.deviceTimestampMs,
     this.tag,
-    DateTime? receivedAt
-  }): receivedAt = receivedAt?? DateTime.now();
+    DateTime? receivedAt,
+  }) : receivedAt = receivedAt ?? DateTime.now();
 
   factory SerialLogEntry.parse(String rawline) {
+    rawline = rawline.replaceAll(RegExp(r'\x1B\[[0-?]*[ -/]*[@-~]'), '');
     final match = _pattern.firstMatch(rawline);
 
     if (match == null) {
       return SerialLogEntry(level: LogLevel.unknown, message: rawline);
     }
 
-    final level = LogLevel.fromPrefix(match.group(1)!)?? LogLevel.unknown;
-    return SerialLogEntry(level: level, deviceTimestampMs: int.tryParse(match.group(2)!), tag: match.group(3), message: match.group(4)!);
+    final level = LogLevel.fromPrefix(match.group(1)!) ?? LogLevel.unknown;
+    return SerialLogEntry(
+      level: level,
+      deviceTimestampMs: int.tryParse(match.group(2)!),
+      tag: match.group(3),
+      message: match.group(4)!,
+    );
   }
 
-  static final RegExp _pattern = RegExp(r'^([EWIDV])\s*\((\d+)\)\s*([^:]+):\s*(.*)$');
+  static final RegExp _pattern = RegExp(
+    r'^([EWIDV])\s*\((\d+)\)\s*([^:]+):\s*(.*)$',
+  );
 }

@@ -4,7 +4,7 @@ import 'device_model.dart';
 
 class DeviceManager extends ChangeNotifier {
   Device? _device;
-  Device? get device => _device; 
+  Device? get device => _device;
 
   bool? get connection => _device != null;
 

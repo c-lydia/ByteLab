@@ -1,11 +1,6 @@
 import 'package:flutter/material.dart';
 
-enum BuildState {
-  idle,
-  running,
-  success,
-  failed
-}
+enum BuildState { idle, running, success, failed, cancelled }
 
 @immutable
 class BuildStatus {
@@ -16,14 +11,18 @@ class BuildStatus {
   const BuildStatus({
     this.state = BuildState.idle,
     this.progress = 0,
-    this.currentStep = ''
+    this.currentStep = '',
   });
 
-  BuildStatus copyWith({BuildState? state, double? progress, String? currentStep}) {
+  BuildStatus copyWith({
+    BuildState? state,
+    double? progress,
+    String? currentStep,
+  }) {
     return BuildStatus(
-      state: state?? this.state,
-      progress: progress?? this.progress,
-      currentStep: currentStep?? this.currentStep
+      state: state ?? this.state,
+      progress: progress ?? this.progress,
+      currentStep: currentStep ?? this.currentStep,
     );
   }
 }

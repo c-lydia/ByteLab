@@ -112,7 +112,9 @@ class _ChartPainter extends CustomPainter {
 
       double yFor(double v) {
         final normalized = (v - minV) / range; // 0..1
-        return size.height - (normalized * size.height * 0.85) - (size.height * 0.075);
+        return size.height -
+            (normalized * size.height * 0.85) -
+            (size.height * 0.075);
       }
 
       final path = Path();
@@ -149,7 +151,7 @@ class _ChartPainter extends CustomPainter {
         Offset(x, 0),
         Offset(x, size.height),
         Paint()
-          ..color = color.withOpacity(0.35)
+          ..color = color.withValues(alpha: 0.35)
           ..strokeWidth = 1.5,
       );
       canvas.drawCircle(Offset(x, 6), 2.5, Paint()..color = color);

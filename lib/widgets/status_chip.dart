@@ -2,12 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/byte_color.dart';
 
-enum DeviceStatus {
-  connected,
-  connecting,
-  disconnected,
-  error
-}
+enum DeviceStatus { connected, connecting, disconnected, error }
 
 class StatusChip extends StatelessWidget {
   final DeviceStatus status;
@@ -15,7 +10,7 @@ class StatusChip extends StatelessWidget {
   const StatusChip({super.key, required this.status});
 
   String get label {
-    switch(status) {
+    switch (status) {
       case DeviceStatus.connected:
         return "CONNECTED";
       case DeviceStatus.connecting:
@@ -28,7 +23,7 @@ class StatusChip extends StatelessWidget {
   }
 
   Color get color {
-    switch(status) {
+    switch (status) {
       case DeviceStatus.connected:
         return ByteColor.success;
       case DeviceStatus.connecting:
@@ -43,14 +38,11 @@ class StatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: 12, 
-        vertical: 6
-      ),
+      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: ByteColor.panelLight, 
+        color: ByteColor.panelLight,
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: ByteColor.border)
+        border: Border.all(color: ByteColor.border),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -60,15 +52,14 @@ class StatusChip extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              color: color, 
-              fontSize: 11, 
-              fontWeight: FontWeight.bold, 
-              letterSpacing: 1
+              color: color,
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1,
             ),
-          )
+          ),
         ],
-      )
+      ),
     );
   }
 }
-

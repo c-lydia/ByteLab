@@ -69,30 +69,23 @@ class _MetricChipState extends State<MetricChip> {
         },
 
         child: AnimatedScale(
-          duration:
-              const Duration(milliseconds:120),
+          duration: const Duration(milliseconds: 120),
           scale: pressed
               ? .95
               : hovering
-                  ? 1.05
-                  : 1,
+              ? 1.05
+              : 1,
           child: AnimatedContainer(
-            duration:
-                const Duration(milliseconds:200),
+            duration: const Duration(milliseconds: 200),
             transform: Matrix4.identity()
-              ..translate(
-                0.0,
-                hovering ? -3.0 : 0.0,
-              ),
+              ..translateByDouble(0.0, hovering ? -3.0 : 0.0, 0.0, 1.0),
             decoration: BoxDecoration(
-              borderRadius:
-                  BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(12),
               boxShadow: hovering
                   ? [
                       BoxShadow(
-                        color:
-                            ByteColor.cyan.withOpacity(.18),
-                        blurRadius:18,
+                        color: ByteColor.cyan.withValues(alpha: .18),
+                        blurRadius: 18,
                       ),
                     ]
                   : [],
@@ -100,74 +93,51 @@ class _MetricChipState extends State<MetricChip> {
 
             child: SurfaceContainer(
               onTap: widget.onTap,
-              padding:
-                  const EdgeInsets.symmetric(
-                    horizontal:16,
-                    vertical:12,
-                  ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
-                mainAxisSize:
-                    MainAxisSize.min,
-                children:[
+                mainAxisSize: MainAxisSize.min,
+                children: [
                   AnimatedRotation(
                     turns: hovering ? .05 : 0,
-                    duration:
-                        const Duration(milliseconds:200),
+                    duration: const Duration(milliseconds: 200),
                     child: AnimatedScale(
-                      duration:
-                          const Duration(milliseconds:200),
+                      duration: const Duration(milliseconds: 200),
                       scale: hovering ? 1.15 : 1,
-                      child: Icon(
-                        widget.icon,
-                        size:18,
-                        color:
-                            ByteColor.cyan,
-                      ),
+                      child: Icon(widget.icon, size: 18, color: ByteColor.cyan),
                     ),
                   ),
-                  const SizedBox(width:10),
+                  const SizedBox(width: 10),
                   Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
-                    children:[
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Text(
                         widget.title,
-                        style:const TextStyle(
-                          color:
-                              ByteColor.mutedText,
-                          fontSize:10,
+                        style: const TextStyle(
+                          color: ByteColor.mutedText,
+                          fontSize: 10,
                         ),
                       ),
                       AnimatedSwitcher(
-                        duration:
-                            const Duration(milliseconds:300),
-                        transitionBuilder:
-                            (child, animation){
+                        duration: const Duration(milliseconds: 300),
+                        transitionBuilder: (child, animation) {
                           return FadeTransition(
-                            opacity:animation,
-                            child:
-                                SlideTransition(
-                                  position:
-                                    Tween<Offset>(
-                                      begin:
-                                          const Offset(0,.3),
-                                      end:
-                                          Offset.zero,
-                                    ).animate(animation),
-                                  child:child,
-                                ),
+                            opacity: animation,
+                            child: SlideTransition(
+                              position: Tween<Offset>(
+                                begin: const Offset(0, .3),
+                                end: Offset.zero,
+                              ).animate(animation),
+                              child: child,
+                            ),
                           );
                         },
-                        child:Text(
+                        child: Text(
                           widget.value,
-                          key:
-                              ValueKey(widget.value),
-                          style:const TextStyle(
-                            color:
-                                ByteColor.text,
-                            fontSize:14,
-                            fontWeight:
-                                FontWeight.bold,
+                          key: ValueKey(widget.value),
+                          style: const TextStyle(
+                            color: ByteColor.text,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),

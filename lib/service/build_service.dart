@@ -1,100 +1,185 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-
 import 'build_status.dart';
 
 class BuildService {
-  final String projectPath;
-  final String command;
-  final List<String> args;
-
-  Process? _process;
-  StreamSubscription<String>? _stdoutSub;
-  StreamSubscription<String>? _stderrSub;
-
-  final _statusController = StreamController<BuildStatus>.broadcast();
-  BuildStatus _status = const BuildStatus();
-
-  final List<String> outputLines = [];
-  final _outputController = StreamController<String>.broadcast();
-
   BuildService({
     required this.projectPath,
     this.command = 'idf.py',
-    this.args = const ['build']
+    this.args = const ['build'],
+    this.exportScript = '',
   });
-
-  Stream<BuildStatus> get statusStream => _statusController.stream;
-  Stream<String> get outputStream => _outputController.stream;
+  String projectPath;
+  String command;
+  List<String> args;
+  String exportScript;
+  String label = 'Build';
+  Process? _process;
+  Future<void>? _activeRun;
+  bool _cancelRequested = false;
+  bool _disposed = false;
+  bool _processGroup = false;
+  Timer? _killTimer;
+  final _statuses = StreamController<BuildStatus>.broadcast();
+  final _output = StreamController<String>.broadcast();
+  BuildStatus _status = const BuildStatus();
+  final List<String> outputLines = [];
+  Stream<BuildStatus> get statusStream => _statuses.stream;
+  Stream<String> get outputStream => _output.stream;
   BuildStatus get status => _status;
-  bool get isRunning => _status.state == BuildState.running;
+  bool get isRunning => _activeRun != null;
+  static final _progress = RegExp(r'^\[(\d+)/(\d+)(?:/\d+)?\]\s+(.*)$');
 
-  static final RegExp _ninjaProgress = RegExp(r'^\[(\d+)/(\d+)/(\d+)\]\s+(.*)$');
-
-  Future<void> start() async {
-    if (isRunning) return;
-
-    outputLines.clear();
-    _setStatus(const BuildStatus(state: BuildState.running, progress: 0));
-
-    try {
-      _process = await Process.start(command, args, workingDirectory: projectPath, runInShell: true);
-    } catch (e) {
-      _setStatus(BuildStatus(state: BuildState.failed, currentStep: 'Failed to start: $e'));
-      return;
+  Future<void> start({List<String>? arguments, String? title}) {
+    if (_disposed) throw StateError('Build service has been disposed');
+    if (_activeRun != null) {
+      throw StateError('Another firmware operation is running');
     }
+    if (arguments != null) args = List.of(arguments);
+    label = title ?? 'Build';
+    _cancelRequested = false;
+    outputLines.clear();
+    _activeRun = _run().whenComplete(() {
+      _activeRun = null;
+    });
+    return _activeRun!;
+  }
 
-    _stdoutSub = _process!.stdout
-      .transform(utf8.decoder)
-      .transform(const LineSplitter())
-      .listen(_handleLine);
-
-    _stderrSub = _process!.stderr
-      .transform(utf8.decoder)
-      .transform(const LineSplitter())
-      .listen(_handleLine);
-
-    final exitCode = await _process!.exitCode;
-    _setStatus(_status.copyWith(
-      state: exitCode == 0? BuildState.success: BuildState.failed,
-      progress: exitCode == 0? 1.0: _status.progress
-    )); 
+  Future<void> _run() async {
+    _setStatus(
+      BuildStatus(state: BuildState.running, currentStep: 'Starting $label…'),
+    );
+    try {
+      if (!await Directory(projectPath).exists()) {
+        throw FileSystemException(
+          'Project directory does not exist',
+          projectPath,
+        );
+      }
+      var executable = command;
+      var parameters = List<String>.of(args);
+      if (exportScript.isNotEmpty) {
+        if (!await File(exportScript).exists()) {
+          throw FileSystemException(
+            'ESP-IDF export script does not exist',
+            exportScript,
+          );
+        }
+        executable = '/bin/bash';
+        parameters = [
+          '-c',
+          r'set -e; source "$1" >/dev/null; shift; exec "$@"',
+          'bytelab',
+          exportScript,
+          command,
+          ...args,
+        ];
+      }
+      _processGroup = Platform.isLinux && File('/usr/bin/setsid').existsSync();
+      if (_processGroup) {
+        parameters = [executable, ...parameters];
+        executable = '/usr/bin/setsid';
+      }
+      _handleLine('> $command ${args.join(' ')}');
+      _process = await Process.start(
+        executable,
+        parameters,
+        workingDirectory: projectPath,
+      );
+      if (_cancelRequested || _disposed) _signal(ProcessSignal.sigterm);
+      final stdoutDone = _process!.stdout
+          .transform(const Utf8Decoder(allowMalformed: true))
+          .transform(const LineSplitter())
+          .forEach(_handleLine);
+      final stderrDone = _process!.stderr
+          .transform(const Utf8Decoder(allowMalformed: true))
+          .transform(const LineSplitter())
+          .forEach(_handleLine);
+      final code = await _process!.exitCode;
+      await Future.wait([stdoutDone, stderrDone]);
+      _setStatus(
+        _status.copyWith(
+          state: _cancelRequested
+              ? BuildState.cancelled
+              : code == 0
+              ? BuildState.success
+              : BuildState.failed,
+          progress: code == 0 && !_cancelRequested ? 1 : _status.progress,
+          currentStep: _cancelRequested
+              ? '$label cancelled'
+              : code == 0
+              ? '$label complete'
+              : '$label failed (exit $code)',
+        ),
+      );
+    } catch (error) {
+      _handleLine('ERROR: $error');
+      _setStatus(
+        BuildStatus(
+          state: _cancelRequested ? BuildState.cancelled : BuildState.failed,
+          currentStep: error.toString(),
+        ),
+      );
+    } finally {
+      _killTimer?.cancel();
+      _killTimer = null;
+      _process = null;
+    }
   }
 
   void _handleLine(String line) {
-    outputLines.add(line);
-    _outputController.add(line);
-
-    final match = _ninjaProgress.firstMatch(line);
-
+    if (_disposed) return;
+    final clean = line.replaceAll(RegExp(r'\x1B\[[0-?]*[ -/]*[@-~]'), '');
+    outputLines.add(clean);
+    if (outputLines.length > 10000) {
+      outputLines.removeRange(0, outputLines.length - 10000);
+    }
+    _output.add(clean);
+    final match = _progress.firstMatch(clean);
     if (match != null) {
-      final current = int.parse(match.group(1)!);
       final total = int.parse(match.group(2)!);
-      final step = match.group(3)!;
-
-      _setStatus(_status.copyWith(
-        progress: total > 0? current/total: _status.progress,
-        currentStep: step
-      ));
+      _setStatus(
+        _status.copyWith(
+          progress: total == 0
+              ? _status.progress
+              : (int.parse(match.group(1)!) / total).clamp(0.0, 1.0),
+          currentStep: match.group(3)!,
+        ),
+      );
     }
   }
 
   void _setStatus(BuildStatus status) {
     _status = status;
-    _statusController.add(status);
+    if (!_disposed) _statuses.add(status);
+  }
+
+  void _signal(ProcessSignal signal) {
+    final process = _process;
+    if (process == null) return;
+    if (_processGroup) {
+      if (!Process.killPid(-process.pid, signal)) process.kill(signal);
+    } else {
+      process.kill(signal);
+    }
   }
 
   Future<void> cancel() async {
-    _process?.kill();
-    await _stdoutSub?.cancel();
-    await _stderrSub?.cancel();
-    _setStatus(_status.copyWith(state: BuildState.idle));
+    if (_activeRun == null) return;
+    _cancelRequested = true;
+    _signal(ProcessSignal.sigterm);
+    _killTimer ??= Timer(
+      const Duration(seconds: 2),
+      () => _signal(ProcessSignal.sigkill),
+    );
+    await _activeRun;
   }
 
-  void dispose() {
-    cancel();
-    _statusController.close();
-    _outputController.close();
+  Future<void> dispose() async {
+    if (_disposed) return;
+    _disposed = true;
+    await cancel();
+    await Future.wait([_statuses.close(), _output.close()]);
   }
 }

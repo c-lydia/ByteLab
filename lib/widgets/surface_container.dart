@@ -28,9 +28,7 @@ class _SurfaceContainerState extends State<SurfaceContainer> {
     final interactive = widget.onTap != null;
 
     return MouseRegion(
-      cursor: interactive
-          ? SystemMouseCursors.click
-          : SystemMouseCursors.basic,
+      cursor: interactive ? SystemMouseCursors.click : SystemMouseCursors.basic,
       onEnter: interactive ? (_) => setState(() => _hovering = true) : null,
       onExit: interactive ? (_) => setState(() => _hovering = false) : null,
       child: AnimatedContainer(
@@ -46,11 +44,9 @@ class _SurfaceContainerState extends State<SurfaceContainer> {
         child: InkWell(
           borderRadius: BorderRadius.circular(widget.borderRadius),
           onTap: widget.onTap,
-          hoverColor: Colors.transparent, // hover handled above, avoid double-tint
-          child: Padding(
-            padding: widget.padding,
-            child: widget.child,
-          ),
+          hoverColor:
+              Colors.transparent, // hover handled above, avoid double-tint
+          child: Padding(padding: widget.padding, child: widget.child),
         ),
       ),
     );

@@ -1,19 +1,29 @@
 import 'package:flutter/material.dart';
+import '../core/byte_color.dart';
 
 class AppTheme {
-  static const purple = Color(0xffB026FF);
-  static const blue = Color(0xff00F5FF);
-
-  static ThemeData dark() {
-    return ThemeData(
-      brightness: Brightness.dark,
-      scaffoldBackgroundColor: const Color(0xff080812),
-      colorScheme: const ColorScheme.dark(
-        primary: purple,
-        secondary: blue
+  static ThemeData dark() => ThemeData(
+    brightness: Brightness.dark,
+    scaffoldBackgroundColor: ByteColor.background,
+    colorScheme: const ColorScheme.dark(
+      primary: ByteColor.cyan,
+      secondary: Color(0xffB388FF),
+      surface: ByteColor.surface,
+      onPrimary: ByteColor.background,
+    ),
+    cardColor: ByteColor.surface,
+    useMaterial3: true,
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: ByteColor.panel,
+      isDense: true,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: ByteColor.border),
       ),
-      cardColor: Color(0xff121225),
-      useMaterial3: true
-    );
-  }
+    ),
+    snackBarTheme: const SnackBarThemeData(behavior: SnackBarBehavior.floating),
+    dividerColor: ByteColor.border,
+  );
 }

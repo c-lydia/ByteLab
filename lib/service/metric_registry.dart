@@ -18,12 +18,12 @@ class MetricSpec {
   });
 
   factory MetricSpec.fallback(String id) => MetricSpec(
-        id: id,
-        label: id.toUpperCase(),
-        icon: Icons.show_chart,
-        color: ByteColor.mutedText,
-        format: (v) => v.toStringAsFixed(1),
-      );
+    id: id,
+    label: id.toUpperCase(),
+    icon: Icons.show_chart,
+    color: ByteColor.mutedText,
+    format: (v) => v.toStringAsFixed(1),
+  );
 }
 
 class MetricRegistry {
@@ -79,6 +79,5 @@ class MetricRegistry {
     ),
   };
 
-  static MetricSpec forId(String id) =>
-      _known[id] ?? MetricSpec.fallback(id);
+  static MetricSpec forId(String id) => _known[id] ?? MetricSpec.fallback(id);
 }

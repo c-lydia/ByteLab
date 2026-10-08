@@ -5,67 +5,79 @@ import 'serial_service.dart';
 
 @immutable
 class DiscoveredDevice {
-  final String path; // e.g. "/dev/ttyUSB0"
-  final String label; // friendly name if the OS/driver reports one
-  final bool isConnected; // matches SerialService.connectedPort
-
+  final String path;
+  final String label;
+  final bool isConnected;
   const DiscoveredDevice({
     required this.path,
     required this.label,
-    required this.isConnected,
+    this.isConnected = false,
   });
 }
 
-/// Polls the OS for available serial ports on an interval and marks
-/// whichever one matches [SerialService.connectedPort] as connected.
-///
-/// Polling (not a native "device attached" event stream) because
-/// libserialport doesn't expose OS-level hotplug notifications through
-/// this binding — periodic re-scan is the simple, portable option.
 class DeviceScanner {
-  final SerialService serialService;
-  final Duration interval;
-  Timer? _timer;
-  final _controller = StreamController<List<DiscoveredDevice>>.broadcast();
-
   DeviceScanner({
     required this.serialService,
     this.interval = const Duration(seconds: 2),
-  });
-
+    List<DiscoveredDevice> Function()? provider,
+  }) : _provider = provider ?? nativePorts;
+  final SerialService serialService;
+  final Duration interval;
+  final List<DiscoveredDevice> Function() _provider;
+  final _controller = StreamController<List<DiscoveredDevice>>.broadcast();
+  Timer? _timer;
+  bool _disposed = false;
+  List<DiscoveredDevice> devices = [];
+  String? error;
   Stream<List<DiscoveredDevice>> get devicesStream => _controller.stream;
 
-  void start() {
-    _scan(); // immediate first scan, don't wait for the first tick
-    _timer = Timer.periodic(interval, (_) => _scan());
-  }
-
-  void _scan() {
+  static List<DiscoveredDevice> nativePorts() {
     final devices = <DiscoveredDevice>[];
     for (final path in SerialPort.availablePorts) {
-      String label = path;
+      SerialPort? port;
+      var label = path;
       try {
-        final port = SerialPort(path);
+        port = SerialPort(path);
         final description = port.description;
-        if (description != null && description.isNotEmpty) {
-          label = description;
-        }
-        port.dispose();
+        if (description != null && description.isNotEmpty) label = description;
       } catch (_) {
-        // Some ports fail to query metadata (permissions, in-use, etc.) —
-        // fall back to just showing the raw path rather than failing
-        // the whole scan.
+        /* Still show ports whose metadata cannot be read. */
+      } finally {
+        port?.dispose();
       }
-
-      devices.add(
-        DiscoveredDevice(
-          path: path,
-          label: label,
-          isConnected: path == serialService.connectedPort,
-        ),
-      );
+      devices.add(DiscoveredDevice(path: path, label: label));
     }
-    _controller.add(devices);
+    devices.sort((a, b) => a.path.compareTo(b.path));
+    return devices;
+  }
+
+  void start() {
+    if (_disposed) return;
+    stop();
+    refresh();
+    _timer = Timer.periodic(interval, (_) => refresh());
+  }
+
+  void refresh() {
+    if (_disposed) return;
+    try {
+      devices = _provider()
+          .map(
+            (p) => DiscoveredDevice(
+              path: p.path,
+              label: p.label,
+              isConnected:
+                  serialService.isConnected &&
+                  p.path == serialService.connectedPort,
+            ),
+          )
+          .toList();
+      error = null;
+    } catch (e) {
+      devices = [];
+      error = e.toString();
+    }
+    _controller.add(List.unmodifiable(devices));
   }
 
   void stop() {
@@ -74,6 +86,8 @@ class DeviceScanner {
   }
 
   void dispose() {
+    if (_disposed) return;
+    _disposed = true;
     stop();
     _controller.close();
   }

@@ -6,7 +6,7 @@ class ByteColor {
   static const surfaceHover = Color(0xff132738);
   static const border = Color(0xff172A3A);
   static const text = Colors.white;
-  static const secondsaryText = Color(0xff8FA23B8);
+  static const secondsaryText = Color(0xff8FA2B8);
   static const cyan = Colors.cyanAccent;
   static const purple = Color(0xff7C3AED);
   static const success = Colors.greenAccent;

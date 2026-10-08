@@ -22,21 +22,21 @@ class Device {
     required this.firmwareVersion,
 
     required this.connection,
-    
+
     required this.connectionType,
     required this.address,
-    
+
     required this.flashSize,
     required this.ramUage,
 
     required this.temperature,
-    required this.cpuUsage
+    required this.cpuUsage,
   });
 
   Device copyWith(
-    String? name, 
-    String? platform, 
-    String? chip, 
+    String? name,
+    String? platform,
+    String? chip,
     String? firmwareVersion,
 
     bool? connection,
@@ -48,24 +48,24 @@ class Device {
     int? ramUage,
 
     double? temperature,
-    double? cpuUsage
+    double? cpuUsage,
   ) {
     return Device(
-      name: name?? this.name,
-      platform: platform?? this.platform,
-      chip: chip?? this.chip,
-      firmwareVersion: firmwareVersion?? this.firmwareVersion,
+      name: name ?? this.name,
+      platform: platform ?? this.platform,
+      chip: chip ?? this.chip,
+      firmwareVersion: firmwareVersion ?? this.firmwareVersion,
 
-      connection: connection?? this.connection,
+      connection: connection ?? this.connection,
 
-      connectionType: connectionType?? this.connectionType,
-      address: address?? this.address,
+      connectionType: connectionType ?? this.connectionType,
+      address: address ?? this.address,
 
-      flashSize: flashSize?? this.flashSize,
-      ramUage: ramUage?? this.ramUage,
+      flashSize: flashSize ?? this.flashSize,
+      ramUage: ramUage ?? this.ramUage,
 
-      temperature: temperature?? this.temperature,
-      cpuUsage: cpuUsage?? this.cpuUsage
+      temperature: temperature ?? this.temperature,
+      cpuUsage: cpuUsage ?? this.cpuUsage,
     );
   }
 }

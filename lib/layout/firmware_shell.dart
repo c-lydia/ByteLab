@@ -1,157 +1,408 @@
+import 'dart:ui' show AppExitResponse;
 import 'package:flutter/material.dart';
-
+import '../app/app_controller.dart';
 import '../core/byte_color.dart';
-import '../service/build_service.dart';
-import '../service/device_scanner.dart';
-import '../service/serial_service.dart';
-import '../widgets/byte_topbar.dart';
-import '../widgets/expandable_terminal_panel.dart';
-import '../widgets/nav_rail.dart';
-import '../widgets/status_chip.dart';
-import '../service/serial_service_scope.dart';
+import '../screens/home_screen.dart';
+import '../screens/project_page.dart';
+import '../screens/firmware_pages.dart';
+import '../screens/monitor_page.dart';
+import '../screens/configuration_page.dart';
+import '../screens/tool_pages.dart';
+import '../screens/settings_page.dart';
+import '../widgets/app_controls.dart';
 
 class FirmwareShell extends StatefulWidget {
-  final List<Widget> pages;
-  final String project;
-  final String path;
-
-  const FirmwareShell({
-    super.key,
-    required this.pages,
-    this.project = "Untitled Project",
-    this.path = "Workspace",
-  });
-
+  const FirmwareShell({super.key});
   @override
   State<FirmwareShell> createState() => _FirmwareShellState();
 }
 
 class _FirmwareShellState extends State<FirmwareShell> {
-  int selected = 0;
-
-  // Owned once here so the connection survives page navigation instead of
-  // being torn down/recreated every time you switch tabs. Shared with every
-  // page below via SerialServiceScope.
-  final SerialService _serialService = SerialService();
-
-  // Also shared, so any page's "Monitor" action can pop the terminal dock
-  // open — not just the dock's own header toggle.
-  final ValueNotifier<bool> _terminalExpanded = ValueNotifier(false);
-
-  late final DeviceScanner _deviceScanner =
-      DeviceScanner(serialService: _serialService)..start();
-
-  late final BuildService _buildService =
-      BuildService(projectPath: widget.path);
+  late final AppLifecycleListener lifecycle;
+  @override
+  void initState() {
+    super.initState();
+    lifecycle = AppLifecycleListener(
+      onExitRequested: () async {
+        final app = AppScope.of(context);
+        if (app.unsavedEditors.isNotEmpty || app.busy) {
+          final leave =
+              await showDialog<bool>(
+                context: context,
+                builder: (dialog) => AlertDialog(
+                  title: const Text('Close ByteLab?'),
+                  content: Text(
+                    app.busy
+                        ? 'A firmware command is running. Closing will cancel it. Stay in ByteLab to let it finish.'
+                        : 'There are unsaved file edits. Closing will discard them.',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(dialog, false),
+                      child: const Text('Stay'),
+                    ),
+                    FilledButton(
+                      onPressed: () => Navigator.pop(dialog, true),
+                      child: const Text('Close ByteLab'),
+                    ),
+                  ],
+                ),
+              ) ??
+              false;
+          if (!leave) return AppExitResponse.cancel;
+        }
+        await app.jobs.cancel();
+        await app.serial.disconnect();
+        return AppExitResponse.exit;
+      },
+    );
+  }
 
   @override
   void dispose() {
-    _serialService.dispose();
-    _terminalExpanded.dispose();
-    _deviceScanner.dispose();
-    _buildService.dispose();
+    lifecycle.dispose();
     super.dispose();
   }
 
-  void changePage(int index) {
-    if (index < 0 || index >= widget.pages.length) return;
-    setState(() => selected = index);
-  }
+  bool dock = false;
+  final visited = <int>{0};
+  static const labels = [
+    'Overview',
+    'Project',
+    'Build',
+    'Flash',
+    'Monitor',
+    'Configuration',
+    'Diagnostics',
+    'Protocol',
+    'Documentation',
+    'Settings',
+  ];
+  static const icons = [
+    Icons.dashboard_outlined,
+    Icons.folder_open,
+    Icons.build_circle_outlined,
+    Icons.bolt,
+    Icons.terminal,
+    Icons.tune,
+    Icons.memory,
+    Icons.hub_outlined,
+    Icons.menu_book_outlined,
+    Icons.settings_outlined,
+  ];
+  static const pages = <Widget>[
+    OverviewPage(),
+    ProjectPage(),
+    BuildPage(),
+    FlashPage(),
+    MonitorPage(),
+    ConfigurationPage(),
+    DiagnosticsPage(),
+    ProtocolPage(),
+    DocumentationPage(),
+    SettingsPage(),
+  ];
 
   @override
   Widget build(BuildContext context) {
-    return SerialServiceScope(
-      serialService: _serialService,
-      terminalExpanded: _terminalExpanded,
-      deviceScanner: _deviceScanner,
-      buildService: _buildService,
-      child: Scaffold(
-        backgroundColor: const Color(0xff080F17),
-        body: Row(
-          children: [
-            FirmwareNavRail(selectedIndex: selected, onChanged: changePage),
-            Expanded(
-              child: Column(
-                children: [
-                  ByteTopbar(
-                    project: widget.project,
-                    path: widget.path,
-                    status: DeviceStatus.connected,
-                  ),
-                  Expanded(
-                    child: AnimatedSwitcher(
-                      // was `microseconds: 200` — effectively invisible.
-                      // milliseconds is what makes the fade actually show.
-                      duration: const Duration(milliseconds: 200),
-                      transitionBuilder: (child, animation) {
-                        return FadeTransition(
-                          opacity: animation,
-                          child: child,
-                        );
-                      },
-                      child: KeyedSubtree(
-                        key: ValueKey(selected),
-                        child: widget.pages[selected],
+    final app = AppScope.of(context);
+    visited.add(app.selectedPage);
+    return Scaffold(
+      body: LayoutBuilder(
+        builder: (context, size) {
+          final wide = size.maxWidth >= 1150;
+          return Row(
+            children: [
+              Container(
+                width: wide ? 208 : 76,
+                decoration: const BoxDecoration(
+                  border: Border(right: BorderSide(color: ByteColor.border)),
+                ),
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 25),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.memory,
+                            color: ByteColor.cyan,
+                            size: 32,
+                          ),
+                          if (wide)
+                            const Padding(
+                              padding: EdgeInsets.only(left: 12),
+                              child: Text(
+                                'BYTE LAB',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 2,
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                     ),
-                  ),
-                  // Persistent dock, present on every page — collapsed by
-                  // default, expands in place. Lives here (not inside
-                  // individual pages) so it doesn't reset when navigating.
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-                    child: ExpandableTerminalPanel(
-                      serialService: _serialService,
-                      expanded: _terminalExpanded,
+                    Expanded(
+                      child: ListView(
+                        padding: const EdgeInsets.symmetric(horizontal: 9),
+                        children: [
+                          for (var i = 0; i < labels.length; i++)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 3),
+                              child: Tooltip(
+                                message: labels[i],
+                                child: Material(
+                                  color: app.selectedPage == i
+                                      ? ByteColor.surfaceHover
+                                      : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(10),
+                                  child: InkWell(
+                                    key: ValueKey('nav-$i'),
+                                    onTap: () => app.navigate(i),
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 14,
+                                        horizontal: 14,
+                                      ),
+                                      child: Row(
+                                        mainAxisAlignment: wide
+                                            ? MainAxisAlignment.start
+                                            : MainAxisAlignment.center,
+                                        children: [
+                                          Icon(
+                                            icons[i],
+                                            size: 22,
+                                            color: app.selectedPage == i
+                                                ? ByteColor.cyan
+                                                : ByteColor.secondsaryText,
+                                          ),
+                                          if (wide) ...[
+                                            const SizedBox(width: 14),
+                                            Expanded(
+                                              child: Text(
+                                                labels[i],
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: TextStyle(
+                                                  color: app.selectedPage == i
+                                                      ? Colors.white
+                                                      : ByteColor
+                                                            .secondsaryText,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
-                  ),
-                  const _StatusBar(),
-                ],
+                    Padding(
+                      padding: const EdgeInsets.all(18),
+                      child: Tooltip(
+                        message:
+                            app.serial.connectedPort ?? 'No board connected',
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.circle,
+                              size: 9,
+                              color: app.serial.isConnected
+                                  ? ByteColor.success
+                                  : ByteColor.mutedText,
+                            ),
+                            if (wide) ...[
+                              const SizedBox(width: 9),
+                              Flexible(
+                                child: Text(
+                                  app.serial.isConnected
+                                      ? 'BOARD CONNECTED'
+                                      : 'DISCONNECTED',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    letterSpacing: 1,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _StatusBar extends StatelessWidget {
-  const _StatusBar();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 28,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: const BoxDecoration(
-        color: ByteColor.surface,
-        border: Border(top: BorderSide(color: ByteColor.border)),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.usb, size: 13, color: ByteColor.success),
-          const SizedBox(width: 8),
-          const Text(
-            "ESP32 CONNECTED",
-            // was ByteColor.secondsaryText (typo) — fixed
-            style: TextStyle(
-              color: ByteColor.secondsaryText,
-              fontSize: 11,
-              letterSpacing: 1,
-            ),
-          ),
-          const Spacer(),
-          const Text(
-            "UART 115200",
-            style: TextStyle(color: ByteColor.mutedText, fontSize: 11),
-          ),
-          const SizedBox(width: 20),
-          const Text(
-            "RAM 64KB",
-            style: TextStyle(color: ByteColor.mutedText, fontSize: 11),
-          ),
-        ],
+              Expanded(
+                child: Column(
+                  children: [
+                    Container(
+                      height: 78,
+                      padding: const EdgeInsets.symmetric(horizontal: 22),
+                      decoration: const BoxDecoration(
+                        border: Border(
+                          bottom: BorderSide(color: ByteColor.border),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  app.project.name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 17,
+                                  ),
+                                ),
+                                const SizedBox(height: 5),
+                                Text(
+                                  app.project.root ??
+                                      'Open a project to get started',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: ByteColor.secondsaryText,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          OutlinedButton.icon(
+                            onPressed: app.busy || !app.hasProject
+                                ? null
+                                : () {
+                                    app.navigate(2);
+                                    uiAction(context, app.build);
+                                  },
+                            icon: const Icon(Icons.build, size: 16),
+                            label: const Text('Build'),
+                          ),
+                          const SizedBox(width: 8),
+                          OutlinedButton.icon(
+                            onPressed: () => app.navigate(3),
+                            icon: const Icon(Icons.bolt, size: 16),
+                            label: const Text('Flash'),
+                          ),
+                          const SizedBox(width: 8),
+                          IconButton(
+                            tooltip: 'Serial monitor',
+                            onPressed: () => app.navigate(4),
+                            icon: const Icon(Icons.terminal),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (app.notice != null)
+                      MaterialBanner(
+                        content: Text(app.notice!),
+                        actions: [
+                          TextButton(
+                            onPressed: app.dismissNotice,
+                            child: const Text('Dismiss'),
+                          ),
+                        ],
+                      ),
+                    Expanded(
+                      child: IndexedStack(
+                        index: app.selectedPage,
+                        children: [
+                          for (var i = 0; i < pages.length; i++)
+                            TickerMode(
+                              enabled: app.selectedPage == i,
+                              child: visited.contains(i)
+                                  ? pages[i]
+                                  : const SizedBox.shrink(),
+                            ),
+                        ],
+                      ),
+                    ),
+                    if (app.selectedPage != 4) ...[
+                      InkWell(
+                        onTap: () => setState(() => dock = !dock),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 9,
+                          ),
+                          color: ByteColor.surface,
+                          child: Row(
+                            children: [
+                              const Icon(Icons.terminal, size: 16),
+                              const SizedBox(width: 10),
+                              Text(
+                                'Serial console · ${app.serial.history.length} lines',
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                              const Spacer(),
+                              Icon(
+                                dock ? Icons.expand_more : Icons.expand_less,
+                                size: 18,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      if (dock)
+                        const SizedBox(
+                          height: 215,
+                          child: MonitorConsole(compact: true),
+                        ),
+                    ],
+                    Container(
+                      height: 28,
+                      color: ByteColor.panel,
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              app.serial.isConnected
+                                  ? '${app.serial.connectedPort} · ${app.serial.baudRate} baud'
+                                  : 'No serial connection',
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: ByteColor.secondsaryText,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            app.busy
+                                ? '${app.jobs.label} running'
+                                : app.jobs.status.state.name.toUpperCase(),
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: ByteColor.secondsaryText,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

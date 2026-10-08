@@ -15,22 +15,20 @@ class MetricCard extends StatelessWidget {
     required this.value,
     required this.icon,
     this.subtitle,
-    this.progress
+    this.progress,
   });
 
   @override
-  Widget build(BuildContext context){
+  Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: ByteColor.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: ByteColor.border
-        )
+        border: Border.all(color: ByteColor.border),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start, 
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -41,21 +39,17 @@ class MetricCard extends StatelessWidget {
                   color: const Color(0xff132738),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(
-                  icon,
-                  size: 18,
-                  color: Colors.cyanAccent
-                )
+                child: Icon(icon, size: 18, color: Colors.cyanAccent),
               ),
-              if(progress != null)
+              if (progress != null)
                 Text(
                   "${(progress! * 100).toInt()}%",
                   style: const TextStyle(
                     color: ByteColor.secondsaryText,
-                    fontSize: 12
-                  )
-                )
-            ]
+                    fontSize: 12,
+                  ),
+                ),
+            ],
           ),
           const SizedBox(height: 18),
           Text(
@@ -63,8 +57,8 @@ class MetricCard extends StatelessWidget {
             style: const TextStyle(
               color: ByteColor.secondsaryText,
               fontSize: 11,
-              letterSpacing: 1.5
-            )
+              letterSpacing: 1.5,
+            ),
           ),
           const SizedBox(height: 6),
           Text(
@@ -72,30 +66,27 @@ class MetricCard extends StatelessWidget {
             style: const TextStyle(
               color: Colors.white,
               fontSize: 26,
-              fontWeight: FontWeight.bold
-            )
+              fontWeight: FontWeight.bold,
+            ),
           ),
-          if(subtitle != null)...[
+          if (subtitle != null) ...[
             const SizedBox(height: 6),
             Text(
               subtitle!,
-              style: const TextStyle(
-                color: Colors.grey,
-                fontSize: 11
-              )
-            )
+              style: const TextStyle(color: Colors.grey, fontSize: 11),
+            ),
           ],
-          if(progress != null)...[
+          if (progress != null) ...[
             const SizedBox(height: 12),
             LinearProgressIndicator(
               value: progress,
               backgroundColor: const Color(0xff172A3A),
               color: Colors.cyanAccent,
-              minHeight: 4
-            )
-          ]
-        ]
-      )
+              minHeight: 4,
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

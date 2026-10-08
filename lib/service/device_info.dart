@@ -20,7 +20,7 @@ class DeviceInfo {
     if (entry.tag != 'device') return null;
 
     String? idf, fw;
-    for (final pair in entry.message!.split(',')) {
+    for (final pair in (entry.message ?? '').split(',')) {
       final kv = pair.split('=');
       if (kv.length != 2) continue;
       switch (kv[0].trim()) {

@@ -48,8 +48,9 @@ class _DeviceHeaderState extends State<DeviceHeader>
 
   @override
   Widget build(BuildContext context) {
-    final statusColor =
-        widget.isConnected ? ByteColor.cyan : ByteColor.mutedText;
+    final statusColor = widget.isConnected
+        ? ByteColor.cyan
+        : ByteColor.mutedText;
 
     return AnimatedBuilder(
       animation: _pulseController,
@@ -66,7 +67,7 @@ class _DeviceHeaderState extends State<DeviceHeader>
             boxShadow: widget.isConnected
                 ? [
                     BoxShadow(
-                      color: ByteColor.cyan.withOpacity(0.08 + 0.10 * t),
+                      color: ByteColor.cyan.withValues(alpha: 0.08 + 0.10 * t),
                       blurRadius: 16 + 10 * t,
                       spreadRadius: 1,
                     ),
@@ -133,7 +134,8 @@ class _DeviceHeaderState extends State<DeviceHeader>
             ),
           ),
 
-          if (widget.onRefresh != null) _RefreshButton(onTap: widget.onRefresh!),
+          if (widget.onRefresh != null)
+            _RefreshButton(onTap: widget.onRefresh!),
         ],
       ),
     );
@@ -184,8 +186,7 @@ class _PulsingDot extends StatelessWidget {
                 duration: const Duration(milliseconds: 250),
                 width: 7,
                 height: 7,
-                decoration:
-                    BoxDecoration(color: color, shape: BoxShape.circle),
+                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
               ),
             ],
           ),
@@ -237,16 +238,17 @@ class _RefreshButtonState extends State<_RefreshButton>
     try {
       await widget.onTap();
     } finally {
-      if (!mounted) return;
-      // Let the current rotation finish instead of snapping to a stop.
-      final remaining = 1.0 - (_spinController.value % 1.0);
-      await _spinController.animateTo(
-        _spinController.value + remaining,
-        curve: Curves.easeOut,
-      );
-      _spinController.stop();
-      _spinController.value = 0;
-      if (mounted) setState(() => _refreshing = false);
+      if (mounted) {
+        // Let the current rotation finish instead of snapping to a stop.
+        final remaining = 1.0 - (_spinController.value % 1.0);
+        await _spinController.animateTo(
+          _spinController.value + remaining,
+          curve: Curves.easeOut,
+        );
+        _spinController.stop();
+        _spinController.value = 0;
+        if (mounted) if (mounted) setState(() => _refreshing = false);
+      }
     }
   }
 

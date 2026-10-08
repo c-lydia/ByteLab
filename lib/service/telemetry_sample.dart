@@ -17,11 +17,11 @@ class TelemetrySample {
     if (entry.tag != 'telemetry') return null;
 
     final parsed = <String, double>{};
-    for (final pair in entry.message!.split(',')) {
+    for (final pair in (entry.message ?? '').split(',')) {
       final kv = pair.split('=');
       if (kv.length != 2) continue;
       final value = double.tryParse(kv[1].trim());
-      if (value != null) parsed[kv[0].trim()] = value;
+      if (value != null && value.isFinite) parsed[kv[0].trim()] = value;
     }
     return TelemetrySample(values: parsed);
   }

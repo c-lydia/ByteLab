@@ -56,32 +56,21 @@ class _ActionTileState extends State<ActionTile> {
           });
         },
         child: AnimatedScale(
-          scale: pressed
-              ? .96
-              : 1.0,
-          duration: const Duration(
-            milliseconds:100,
-          ),
+          scale: pressed ? .96 : 1.0,
+          duration: const Duration(milliseconds: 100),
           child: AnimatedContainer(
-            duration: const Duration(
-              milliseconds:200,
-            ),
+            duration: const Duration(milliseconds: 200),
             curve: Curves.easeOut,
             transform: Matrix4.identity()
-              ..translate(
-                0.0,
-                hovered ? -3.0 : 0.0,
-              ),
+              ..translateByDouble(0.0, hovered ? -3.0 : 0.0, 0.0, 1.0),
             decoration: BoxDecoration(
-              borderRadius:
-                  BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(12),
               boxShadow: hovered
                   ? [
                       BoxShadow(
-                        color: ByteColor.cyan
-                            .withOpacity(.15),
-                        blurRadius:18,
-                      )
+                        color: ByteColor.cyan.withValues(alpha: .15),
+                        blurRadius: 18,
+                      ),
                     ]
                   : [],
             ),
@@ -90,56 +79,39 @@ class _ActionTileState extends State<ActionTile> {
               child: Row(
                 children: [
                   AnimatedContainer(
-                    duration:
-                        const Duration(milliseconds:200),
-                    padding:
-                        const EdgeInsets.all(10),
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
                       color: hovered
-                          ? ByteColor.cyan
-                              .withOpacity(.15)
+                          ? ByteColor.cyan.withValues(alpha: .15)
                           : ByteColor.surfaceHover,
-                      borderRadius:
-                          BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(10),
                     ),
                     child: AnimatedRotation(
                       turns: hovered ? .05 : 0,
-                      duration:
-                          const Duration(milliseconds:200),
-                      child: Icon(
-                        widget.icon,
-                        color:
-                            ByteColor.cyan,
-                      ),
+                      duration: const Duration(milliseconds: 200),
+                      child: Icon(widget.icon, color: ByteColor.cyan),
                     ),
                   ),
-                  const SizedBox(width:12),
+                  const SizedBox(width: 12),
                   Expanded(
-                    child:Column(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start,
-                      children:[
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                         AnimatedDefaultTextStyle(
-                          duration:
-                              const Duration(milliseconds:200),
+                          duration: const Duration(milliseconds: 200),
                           style: TextStyle(
-                            color: hovered
-                                ? ByteColor.cyan
-                                : ByteColor.text,
-                            fontWeight:
-                                FontWeight.bold,
+                            color: hovered ? ByteColor.cyan : ByteColor.text,
+                            fontWeight: FontWeight.bold,
                           ),
-                          child:Text(
-                            widget.title,
-                          ),
+                          child: Text(widget.title),
                         ),
 
                         Text(
                           widget.subtitle,
                           style: const TextStyle(
-                            color:
-                                ByteColor.mutedText,
-                            fontSize:11,
+                            color: ByteColor.mutedText,
+                            fontSize: 11,
                           ),
                         ),
                       ],

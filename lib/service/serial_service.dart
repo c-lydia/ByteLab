@@ -1,158 +1,211 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:typed_data';
-
 import 'package:flutter_libserialport/flutter_libserialport.dart';
-
-import 'device_info.dart';
 import '../models/serial_log_entry.dart';
+import 'device_info.dart';
+import 'serial_transport.dart';
 import 'telemetry_sample.dart';
 
 class SerialService {
-  SerialPort? _port;
-  SerialPortReader? _reader;
-  StreamSubscription<Uint8List>? _readSub;
-
-  final StringBuffer _lineBuffer = StringBuffer();
-
-  final _logController = StreamController<SerialLogEntry>.broadcast();
-  final _connectionController = StreamController<bool>.broadcast();
-  final _telemetryController = StreamController<TelemetrySample>.broadcast();
-  final _deviceInfoController = StreamController<DeviceInfo>.broadcast();
-
+  SerialService({SerialTransport Function()? transportFactory})
+    : _factory = transportFactory ?? LibSerialTransport.new;
+  final SerialTransport Function() _factory;
+  SerialTransport? _transport;
+  StreamSubscription<String>? _readSub;
+  final _logs = StreamController<SerialLogEntry>.broadcast();
+  final _connections = StreamController<bool>.broadcast();
+  final _telemetry = StreamController<TelemetrySample>.broadcast();
+  final _info = StreamController<DeviceInfo>.broadcast();
+  Future<void> _writes = Future<void>.value();
+  String _buffer = '';
+  int _generation = 0;
+  bool _disposed = false;
+  bool isConnecting = false;
   String? connectedPort;
-
+  int baudRate = 115200;
   TelemetrySample latestTelemetry = const TelemetrySample();
-
   DeviceInfo latestDeviceInfo = const DeviceInfo();
-
-  Stream<SerialLogEntry> get logStream => _logController.stream;
-  Stream<bool> get connectionStream => _connectionController.stream;
-  Stream<TelemetrySample> get telemetryStream => _telemetryController.stream;
-
-  Stream<DeviceInfo> get deviceInfoStream => _deviceInfoController.stream;
-
-  bool get isConnected => _port?.isOpen ?? false;
-
   final List<SerialLogEntry> history = [];
-  static const int _maxHistory = 5000;
-
+  final List<String> rawHistory = [];
+  static const maxHistory = 5000;
+  static const maxLineLength = 65536;
+  Stream<SerialLogEntry> get logStream => _logs.stream;
+  Stream<bool> get connectionStream => _connections.stream;
+  Stream<TelemetrySample> get telemetryStream => _telemetry.stream;
+  Stream<DeviceInfo> get deviceInfoStream => _info.stream;
+  bool get isConnected => _transport != null;
   static List<String> availablePorts() => SerialPort.availablePorts;
 
   Future<void> connect(String path, {int baudRate = 115200}) async {
-    await disconnect(); // ensure any previous connection is cleaned up first
-
-    final port = SerialPort(path);
-    if (!port.openReadWrite()) {
-      final error = SerialPort.lastError;
-      throw SerialConnectionException(
-        'Could not open $path: ${error?.message ?? "unknown error"}',
+    if (_disposed) throw StateError('Serial service has been disposed');
+    if (isConnecting) {
+      throw const SerialConnectionException(
+        'A connection is already in progress',
       );
     }
-
-    port.config
-      ..baudRate = baudRate
-      ..bits = 8
-      ..parity = SerialPortParity.none
-      ..stopBits = 1;
-
-    _port = port;
-    connectedPort = path;
-    _reader = SerialPortReader(port);
-    _readSub = _reader!.stream.listen(
-      _handleBytes,
-      onError: (_) => _connectionController.add(false),
-    );
-
-    _connectionController.add(true);
+    if (path.trim().isEmpty || baudRate <= 0) {
+      throw ArgumentError('Choose a port and a positive baud rate');
+    }
+    isConnecting = true;
+    SerialTransport? candidate;
+    try {
+      await disconnect();
+      final generation = _generation;
+      candidate = _factory();
+      await candidate.open(path, baudRate);
+      if (_disposed || generation != _generation) {
+        throw const SerialConnectionException('Connection cancelled');
+      }
+      _transport = candidate;
+      connectedPort = path;
+      this.baudRate = baudRate;
+      latestTelemetry = const TelemetrySample();
+      latestDeviceInfo = const DeviceInfo();
+      clearHistory();
+      _telemetry.add(latestTelemetry);
+      _info.add(latestDeviceInfo);
+      _readSub = candidate.input
+          .transform(const Utf8Decoder(allowMalformed: true))
+          .listen(
+            (text) {
+              if (generation == _generation && !_disposed) _handleText(text);
+            },
+            onError: (Object error) => _lost(generation, error.toString()),
+            onDone: () => _lost(generation, 'Serial device disconnected'),
+          );
+      _connections.add(true);
+    } catch (error) {
+      if (candidate != null) await candidate.close();
+      _transport = null;
+      connectedPort = null;
+      if (!_disposed) _connections.add(false);
+      throw SerialConnectionException(error.toString());
+    } finally {
+      isConnecting = false;
+    }
   }
 
-  void _handleBytes(Uint8List chunk) {
-    _lineBuffer.write(String.fromCharCodes(chunk));
-    final buffered = _lineBuffer.toString();
-
-    final lines = buffered.split('\n');
-    final incomplete = lines.removeLast();
-
-    for (final rawLine in lines) {
-      final line = rawLine.replaceAll('\r', '').trimRight();
-      if (line.isEmpty) continue;
-
-      final entry = SerialLogEntry.parse(line);
-      history.add(entry);
-      if (history.length > _maxHistory) history.removeAt(0);
-      _logController.add(entry);
-
-      final telemetry = TelemetrySample.tryParse(entry);
-      if (telemetry != null) {
-        latestTelemetry = latestTelemetry.mergedWith(telemetry);
-        _telemetryController.add(latestTelemetry);
-      }
-
-      final deviceInfo = DeviceInfo.tryParse(entry);
-      if (deviceInfo != null) {
-        latestDeviceInfo = latestDeviceInfo.mergedWith(deviceInfo);
-        _deviceInfoController.add(latestDeviceInfo);
-      }
-    }
-
-    _lineBuffer
-      ..clear()
-      ..write(incomplete);
+  void _lost(int generation, String reason) {
+    if (_disposed || generation != _generation) return;
+    _append('W (0) bytelab: $reason');
+    unawaited(disconnect().catchError((Object _) {}));
   }
 
-  Future<void> write(String data) async {
-    final port = _port;
-    if (port == null || !port.isOpen) {
-      throw SerialConnectionException('Not connected');
+  void _handleText(String chunk) {
+    _buffer += chunk;
+    var newline = _buffer.indexOf('\n');
+    while (newline >= 0) {
+      final line = _buffer.substring(0, newline).replaceAll('\r', '');
+      _buffer = _buffer.substring(newline + 1);
+      if (line.length <= maxLineLength) {
+        if (line.isNotEmpty) _append(line);
+      } else {
+        _append('W (0) bytelab: Discarded a serial line larger than 64 KiB');
+      }
+      newline = _buffer.indexOf('\n');
     }
-    port.write(Uint8List.fromList(data.codeUnits));
+    if (_buffer.length > maxLineLength) {
+      _buffer = '';
+      _append(
+        'W (0) bytelab: Discarded unterminated serial data larger than 64 KiB',
+      );
+    }
+  }
+
+  void _append(String line) {
+    if (_disposed) return;
+    final entry = SerialLogEntry.parse(line);
+    history.add(entry);
+    rawHistory.add(line);
+    if (history.length > maxHistory) history.removeAt(0);
+    if (rawHistory.length > maxHistory) rawHistory.removeAt(0);
+    _logs.add(entry);
+    final sample = TelemetrySample.tryParse(entry);
+    if (sample != null) {
+      latestTelemetry = latestTelemetry.mergedWith(sample);
+      _telemetry.add(latestTelemetry);
+    }
+    final info = DeviceInfo.tryParse(entry);
+    if (info != null) {
+      latestDeviceInfo = latestDeviceInfo.mergedWith(info);
+      _info.add(latestDeviceInfo);
+    }
+  }
+
+  void clearHistory() {
+    history.clear();
+    rawHistory.clear();
+  }
+
+  Future<void> write(String data) =>
+      writeBytes(Uint8List.fromList(utf8.encode(data)));
+  Future<void> writeBytes(Uint8List bytes) {
+    if (bytes.length > 65536) {
+      throw ArgumentError('Send at most 64 KiB at a time');
+    }
+    final generation = _generation;
+    final task = _writes.then((_) async {
+      final transport = _transport;
+      if (_disposed || transport == null || generation != _generation) {
+        throw const SerialConnectionException('Not connected');
+      }
+      await transport.writeAll(bytes);
+    });
+    _writes = task.catchError((Object _) {});
+    return task;
   }
 
   Future<void> requestStatus({
     Duration timeout = const Duration(seconds: 3),
   }) async {
-    final completer = Completer<void>();
-    late final StreamSubscription<SerialLogEntry> sub;
-
-    sub = logStream.listen((entry) {
-      if (entry.tag == 'status' && !completer.isCompleted) {
-        completer.complete();
+    final response = Completer<void>();
+    final sub = logStream.listen((entry) {
+      if ((entry.tag == 'status' || entry.tag == 'device') &&
+          !response.isCompleted) {
+        response.complete();
       }
     });
-
-    await write('STATUS?\n');
-
     try {
-      await completer.future.timeout(timeout);
+      await write('STATUS?\n');
+      await response.future.timeout(timeout);
     } finally {
       await sub.cancel();
     }
   }
 
   Future<void> disconnect() async {
-    await _readSub?.cancel();
+    _generation++;
+    final reader = _readSub;
+    final transport = _transport;
     _readSub = null;
-    _reader = null;
-    _port?.close();
-    _port = null;
+    _transport = null;
     connectedPort = null;
-    _lineBuffer.clear();
-    _connectionController.add(false);
+    _buffer = '';
+    try {
+      await reader?.cancel();
+    } finally {
+      await transport?.close();
+      if (!_disposed) _connections.add(false);
+    }
   }
 
-  void dispose() {
-    disconnect();
-    _logController.close();
-    _connectionController.close();
-    _telemetryController.close();
-    _deviceInfoController.close();
+  Future<void> dispose() async {
+    if (_disposed) return;
+    _disposed = true;
+    await disconnect();
+    await Future.wait([
+      _logs.close(),
+      _connections.close(),
+      _telemetry.close(),
+      _info.close(),
+    ]);
   }
 }
 
 class SerialConnectionException implements Exception {
   final String message;
-  SerialConnectionException(this.message);
-
+  const SerialConnectionException(this.message);
   @override
-  String toString() => 'SerialConnectionException: $message';
+  String toString() => message;
 }

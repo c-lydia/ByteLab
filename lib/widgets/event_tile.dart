@@ -28,34 +28,31 @@ class _EventTileState extends State<EventTile>
   late AnimationController pulseController;
 
   @override
-  void initState(){
+  void initState() {
     super.initState();
 
     pulseController = AnimationController(
-      vsync:this,
-      duration:
-          const Duration(seconds:2),
+      vsync: this,
+      duration: const Duration(seconds: 2),
     );
 
     pulseController.forward();
   }
 
   @override
-  void dispose(){
+  void dispose() {
     pulseController.dispose();
     super.dispose();
   }
 
   @override
-  Widget build(BuildContext context){
+  Widget build(BuildContext context) {
     final interactive = widget.onTap != null;
 
     return MouseRegion(
-      cursor: interactive
-          ? SystemMouseCursors.click
-          : SystemMouseCursors.basic,
+      cursor: interactive ? SystemMouseCursors.click : SystemMouseCursors.basic,
       onEnter: (_) {
-        if(interactive){
+        if (interactive) {
           setState(() {
             hovering = true;
           });
@@ -63,7 +60,7 @@ class _EventTileState extends State<EventTile>
       },
 
       onExit: (_) {
-        if(interactive){
+        if (interactive) {
           setState(() {
             hovering = false;
           });
@@ -71,82 +68,49 @@ class _EventTileState extends State<EventTile>
       },
 
       child: AnimatedContainer(
-        duration:
-            const Duration(milliseconds:180),
+        duration: const Duration(milliseconds: 180),
         transform: Matrix4.identity()
-          ..translate(
-            0.0,
-            hovering ? -2.0 : 0.0,
-          ),
+          ..translateByDouble(0.0, hovering ? -2.0 : 0.0, 0.0, 1.0),
         decoration: BoxDecoration(
-          color: hovering
-              ? ByteColor.surfaceHover
-              : Colors.transparent,
-          borderRadius:
-              BorderRadius.circular(8),
+          color: hovering ? ByteColor.surfaceHover : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
           boxShadow: hovering
               ? [
                   BoxShadow(
-                    color:
-                        widget.color.withOpacity(.18),
-                    blurRadius:12,
+                    color: widget.color.withValues(alpha: .18),
+                    blurRadius: 12,
                   ),
                 ]
               : [],
         ),
         child: InkWell(
           onTap: widget.onTap,
-          borderRadius:
-              BorderRadius.circular(8),
-          hoverColor:
-              Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+          hoverColor: Colors.transparent,
           child: Padding(
-            padding:
-                const EdgeInsets.symmetric(
-                  horizontal:6,
-                  vertical:8,
-                ),
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
             child: Row(
-              children:[
+              children: [
                 AnimatedScale(
-                  duration:
-                      const Duration(milliseconds:200),
-                  scale:
-                      hovering ? 1.15 : 1,
-                  child: Icon(
-                    widget.icon,
-                    color:
-                        widget.color,
-                    size:16,
-                  ),
+                  duration: const Duration(milliseconds: 200),
+                  scale: hovering ? 1.15 : 1,
+                  child: Icon(widget.icon, color: widget.color, size: 16),
                 ),
-                const SizedBox(width:10),
+                const SizedBox(width: 10),
                 Expanded(
-                  child:Text(
+                  child: Text(
                     widget.title,
-                    overflow:
-                        TextOverflow.ellipsis,
-                    style:
-                        const TextStyle(
-                          color:
-                              ByteColor.text,
-                        ),
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: ByteColor.text),
                   ),
                 ),
-                const SizedBox(width:8),
+                const SizedBox(width: 8),
                 AnimatedSwitcher(
-                  duration:
-                      const Duration(milliseconds:250),
-                  child:Text(
+                  duration: const Duration(milliseconds: 250),
+                  child: Text(
                     widget.time,
-                    key:
-                        ValueKey(widget.time),
-                    style:
-                        const TextStyle(
-                          color:
-                              ByteColor.text,
-                          fontSize:11,
-                        ),
+                    key: ValueKey(widget.time),
+                    style: const TextStyle(color: ByteColor.text, fontSize: 11),
                   ),
                 ),
               ],
