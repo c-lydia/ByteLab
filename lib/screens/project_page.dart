@@ -2,9 +2,13 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import '../app/app_controller.dart';
 import '../app/project_store.dart';
+import '../app/settings_store.dart';
+import '../widgets/external_editor.dart';
 import '../core/byte_color.dart';
 import '../widgets/app_controls.dart';
 import '../widgets/source_editor.dart';
+import '../widgets/code_block.dart';
+import '../widgets/neovim_editor.dart';
 
 class ProjectPage extends StatefulWidget {
   const ProjectPage({super.key});
@@ -13,7 +17,7 @@ class ProjectPage extends StatefulWidget {
 }
 
 class _ProjectPageState extends State<ProjectPage> {
-  final editor = TextEditingController();
+  final editor = CodeEditingController();
   AppController? app;
   String? root, directory, file;
   String original = '';
@@ -21,6 +25,7 @@ class _ProjectPageState extends State<ProjectPage> {
   List<ProjectEntry> entries = [];
   bool loading = false;
   bool saving = false;
+  EditorChoice? lastEditorMode;
   int fileRequest = 0;
   int generation = 0;
   bool get dirty => file != null && editor.text != original;
@@ -43,6 +48,14 @@ class _ProjectPageState extends State<ProjectPage> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     app = AppScope.of(context);
+    final mode = app!.settings.editor;
+    if (lastEditorMode != null && lastEditorMode != mode) {
+      fileRequest++;
+      file = null;
+      original = '';
+      editor.clear();
+    }
+    lastEditorMode = mode;
     if (root != app!.project.root) {
       fileRequest++;
       root = app!.project.root;
@@ -81,6 +94,17 @@ class _ProjectPageState extends State<ProjectPage> {
   }
 
   Future<void> _openFile(String path) async {
+    if (app!.settings.useNeovim) {
+      if (app!.busy) {
+        throw StateError('Wait for the firmware command to finish');
+      }
+      await app!.neovim.openFile(root!, path, clean: app!.settings.neovimClean);
+      return;
+    }
+    if (app!.settings.editor.external) {
+      setState(() => file = path);
+      return;
+    }
     if (saving) throw StateError('Wait for the current file to finish saving');
     if (dirty && !await discardPrompt(context)) return;
     final request = ++fileRequest;
@@ -88,6 +112,7 @@ class _ProjectPageState extends State<ProjectPage> {
     if (!mounted || request != fileRequest) return;
     setState(() {
       file = path;
+      editor.language = codeLanguage(path);
       original = contents;
       editor.text = contents;
     });
@@ -261,9 +286,7 @@ class _ProjectPageState extends State<ProjectPage> {
                           if (error != null)
                             Text(
                               error!,
-                              style: const TextStyle(
-                                color: Colors.orangeAccent,
-                              ),
+                              style: const TextStyle(color: ByteColor.warning),
                             ),
                           Expanded(
                             child: ListView(
@@ -301,7 +324,11 @@ class _ProjectPageState extends State<ProjectPage> {
                   ),
                   const SizedBox(width: 16),
                   Expanded(
-                    child: file == null
+                    child: controller.settings.useNeovim
+                        ? const NeovimEditor()
+                        : controller.settings.editor.external
+                        ? ExternalEditor(root: root!, file: file)
+                        : file == null
                         ? const EmptyMessage(
                             'Select a file',
                             'Text files up to 2 MiB can be edited here.',

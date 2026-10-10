@@ -14,3 +14,10 @@ android/local.properties
 # Local firmware and recovery copies
 firmware_smoke/
 .bytelab-backups/
+
+# Local Vercel project link and generated deployment bundle
+.vercel/
+.env*
+
+# Python deployment-tool cache
+__pycache__/

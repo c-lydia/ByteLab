@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import '../app/app_controller.dart';
 import '../core/byte_color.dart';
@@ -101,7 +100,7 @@ class DiagnosticsPage extends StatelessWidget {
               if (app.scanner.error != null)
                 Text(
                   app.scanner.error!,
-                  style: const TextStyle(color: Colors.orangeAccent),
+                  style: const TextStyle(color: ByteColor.warning),
                 ),
               if (app.scanner.devices.isEmpty)
                 const Text(
@@ -270,71 +269,4 @@ class _ProtocolPageState extends State<ProtocolPage> {
       ],
     );
   }
-}
-
-class DocumentationPage extends StatelessWidget {
-  const DocumentationPage({super.key});
-  @override
-  Widget build(BuildContext context) => ListView(
-    padding: const EdgeInsets.all(26),
-    children: [
-      const PageTitle('Documentation', 'From source code to a running board.'),
-      for (final section in const [
-        (
-          '1 · Set up the toolchain',
-          'Install ESP-IDF and its tools for your chip. In Settings, choose the installation’s export.sh, then Save and check toolchain. ByteLab uses your installed SDK.',
-        ),
-        (
-          '2 · Open or create a project',
-          'Open a folder containing CMakeLists.txt, or create a starter in Project. The starter targets ESP32 by default and reports measured heap usage and flash capacity. Edit and save source files before building. Ctrl+S saves the current editor.',
-        ),
-        (
-          '3 · Build and configure',
-          'Build runs idf.py build. Reconfigure regenerates the build system; Memory usage reports image size; Clean build removes compiled output. Configuration edits sdkconfig or sdkconfig.defaults. Set the chip target with idf.py set-target <chip> from an ESP-IDF terminal before building for a different chip.',
-        ),
-        (
-          '4 · Flash and monitor',
-          'Select the correct serial port in Flash, then click Flash. ESP-IDF builds as needed and uploads the firmware. If a monitor was connected, ByteLab releases and reconnects it. Open Monitor to view logs or send commands.',
-        ),
-        (
-          '5 · Serial protocol',
-          'Any UTF-8 serial output appears in Monitor. Structured lines use the ESP-IDF format:\nI (1200) telemetry: ram=84.5,temp=28.2\nI (1200) device: idf=v6.0,fw=1.0.0\nI (1200) status: ready\n\nTelemetry values must be finite numbers. Supported display units: cpu percent; ram and flash KiB; temp °C; voltage V; current mA; rssi dBm. Other keys are displayed as numeric metrics. Each chart series scales independently.',
-        ),
-        (
-          '6 · Starter commands',
-          'STATUS? returns firmware and SDK versions. PING returns PONG. HELP lists commands. These commands need compatible firmware. The Protocol page can send text or exact hex bytes and preview parsed log lines.',
-        ),
-        (
-          'Files and history',
-          'The last project, port, SDK path, and serial preferences are saved per user. The editor checks for external edits before saving and keeps previous file versions in .bytelab-backups. Serial history retains 5,000 lines; command output retains 10,000. Use Export to save a log file.',
-        ),
-      ]) ...[
-        AppPanel(
-          title: section.$1,
-          child: SelectableText(
-            section.$2,
-            style: const TextStyle(height: 1.6, color: Color(0xffC0D2E2)),
-          ),
-        ),
-        const SizedBox(height: 16),
-      ],
-      Align(
-        alignment: Alignment.centerLeft,
-        child: OutlinedButton.icon(
-          onPressed: () => uiAction(context, () async {
-            final result = await Process.run('xdg-open', [
-              'https://docs.espressif.com/projects/esp-idf/en/stable/esp32/get-started/',
-            ]);
-            if (result.exitCode != 0) {
-              throw StateError(
-                'Could not open a browser. Visit docs.espressif.com for ESP-IDF documentation.',
-              );
-            }
-          }),
-          icon: const Icon(Icons.open_in_new, size: 16),
-          label: const Text('Official ESP-IDF documentation'),
-        ),
-      ),
-    ],
-  );
 }

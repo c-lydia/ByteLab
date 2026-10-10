@@ -36,10 +36,10 @@ class MetricCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: const Color(0xff132738),
+                  color: ByteColor.panelLight,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(icon, size: 18, color: Colors.cyanAccent),
+                child: Icon(icon, size: 18, color: ByteColor.cyan),
               ),
               if (progress != null)
                 Text(
@@ -64,7 +64,7 @@ class MetricCard extends StatelessWidget {
           Text(
             value,
             style: const TextStyle(
-              color: Colors.white,
+              color: ByteColor.text,
               fontSize: 26,
               fontWeight: FontWeight.bold,
             ),
@@ -73,15 +73,15 @@ class MetricCard extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               subtitle!,
-              style: const TextStyle(color: Colors.grey, fontSize: 11),
+              style: const TextStyle(color: ByteColor.mutedText, fontSize: 11),
             ),
           ],
           if (progress != null) ...[
             const SizedBox(height: 12),
             LinearProgressIndicator(
               value: progress,
-              backgroundColor: const Color(0xff172A3A),
-              color: Colors.cyanAccent,
+              backgroundColor: ByteColor.border,
+              color: ByteColor.cyan,
               minHeight: 4,
             ),
           ],

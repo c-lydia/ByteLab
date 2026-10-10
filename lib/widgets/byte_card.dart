@@ -57,7 +57,7 @@ class _ByteCardState extends State<ByteCard> {
 
             border: Border.all(
               color: hovered
-                  ? Colors.cyanAccent.withValues(alpha: .7)
+                  ? ByteColor.cyan.withValues(alpha: .7)
                   : ByteColor.border,
 
               width: hovered ? 1.2 : 1,
@@ -66,7 +66,7 @@ class _ByteCardState extends State<ByteCard> {
             boxShadow: hovered
                 ? [
                     BoxShadow(
-                      color: Colors.cyanAccent.withValues(alpha: .20),
+                      color: ByteColor.cyan.withValues(alpha: .20),
 
                       blurRadius: 25,
 
@@ -93,8 +93,8 @@ class _ByteCardState extends State<ByteCard> {
 
                         decoration: BoxDecoration(
                           color: hovered
-                              ? const Color(0xff16354A)
-                              : const Color(0xff132738),
+                              ? ByteColor.surfaceHover
+                              : ByteColor.panelLight,
 
                           borderRadius: BorderRadius.circular(8),
                         ),
@@ -104,7 +104,7 @@ class _ByteCardState extends State<ByteCard> {
 
                           size: 16,
 
-                          color: Colors.cyanAccent,
+                          color: ByteColor.cyan,
                         ),
                       ),
 

@@ -17,22 +17,28 @@
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
+  <meta name="theme-color" content="#1A1B26">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>body { margin: 0; background: #1A1B26; color: #C0CAF5; font-family: sans-serif; } #loading { padding: 32px; display: flex; align-items: center; gap: 12px; } #loading img { border-radius: 12px; } </style>
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="description" content="ByteLab: edit ESP-IDF source, browse toolchain documentation, and monitor serial devices in your browser.">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="bytelab">
-  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+  <meta name="apple-mobile-web-app-title" content="ByteLab">
+  <link rel="apple-touch-icon" href="icons/bytelab-apple-touch.png" sizes="180x180">
 
   <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png"/>
+  <link rel="icon" type="image/png" sizes="32x32" href="bytelab-favicon.png">
+  <link rel="icon" type="image/svg+xml" sizes="any" href="bytelab-icon.svg">
 
-  <title>bytelab</title>
+  <title>ByteLab Web</title>
   <link rel="manifest" href="manifest.json">
 </head>
 <body>
+  <div id="loading" role="status"><img src="icons/bytelab-192.png" width="48" height="48" alt="">Loading ByteLab…</div>
+  <noscript>Enable JavaScript to use ByteLab Web.</noscript>
   <!--
     You can customize the "flutter_bootstrap.js" script.
     This is useful to provide a custom configuration to the Flutter loader

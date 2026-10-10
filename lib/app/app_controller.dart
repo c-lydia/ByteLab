@@ -4,6 +4,8 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../models/serial_log_entry.dart';
 import '../service/build_service.dart';
+import '../service/neovim_service.dart';
+import '../service/window_appearance.dart';
 import '../service/build_status.dart';
 import '../service/device_scanner.dart';
 import '../service/serial_service.dart';
@@ -22,6 +24,16 @@ class AppController extends ChangeNotifier {
        jobs =
            buildService ?? BuildService(projectPath: Directory.current.path) {
     scanner = DeviceScanner(serialService: serial, provider: portProvider);
+    neovim = NeovimService(
+      onChanged: () {
+        if (neovim.needsAttention) {
+          unsavedEditors.add(neovim);
+        } else {
+          unsavedEditors.remove(neovim);
+        }
+        _notifySoon();
+      },
+    );
     _subscriptions.addAll([
       scanner.devicesStream.listen((_) => _notifySoon()),
       serial.connectionStream.listen((_) {
@@ -55,6 +67,9 @@ class AppController extends ChangeNotifier {
     ]);
   }
 
+  late final NeovimService neovim;
+  final WindowAppearance window = WindowAppearance();
+  bool windowOpacitySupported = false;
   final SerialService serial;
   final SettingsStore store;
   final BuildService jobs;
@@ -97,6 +112,12 @@ class AppController extends ChangeNotifier {
       }
     }
     if (_disposed) return;
+    try {
+      windowOpacitySupported = await window.setOpacity(settings.windowOpacity);
+    } catch (error) {
+      notice = 'Could not apply window opacity: $error';
+    }
+    if (_disposed) return;
     ready = true;
     scanner.start();
     notifyListeners();
@@ -136,8 +157,26 @@ class AppController extends ChangeNotifier {
         'The ESP-IDF export.sh file does not exist',
       );
     }
+    if (!next.windowOpacity.isFinite ||
+        next.windowOpacity < 0.7 ||
+        next.windowOpacity > 1) {
+      throw const FormatException(
+        'Window opacity must be between 70% and 100%',
+      );
+    }
+    if (next.editor != settings.editor ||
+        next.neovimClean != settings.neovimClean) {
+      await neovim.ensureSaved();
+      if (unsavedEditors.isNotEmpty) {
+        throw StateError(
+          'Save or reload editor changes before changing editor settings',
+        );
+      }
+      await neovim.close();
+    }
     await store.save(next);
     settings = next;
+    windowOpacitySupported = await window.setOpacity(next.windowOpacity);
     _notifySoon();
   }
 
@@ -146,12 +185,14 @@ class AppController extends ChangeNotifier {
 
   Future<void> openProject(String path) async {
     if (busy) throw StateError('Wait for the firmware operation to finish');
+    await neovim.ensureSaved();
     if (unsavedEditors.isNotEmpty) {
       throw StateError(
         'Save or reload unsaved files before switching projects',
       );
     }
     await project.open(path);
+    await neovim.close();
     settings = settings.copyWith(projectPath: project.root);
     _notifySoon();
     await store.save(settings);
@@ -159,12 +200,14 @@ class AppController extends ChangeNotifier {
 
   Future<void> createProject(String parent, String name) async {
     if (busy) throw StateError('Wait for the firmware operation to finish');
+    await neovim.ensureSaved();
     if (unsavedEditors.isNotEmpty) {
       throw StateError(
         'Save or reload unsaved files before creating a project',
       );
     }
     await project.create(parent, name);
+    await neovim.close();
     settings = settings.copyWith(projectPath: project.root);
     _notifySoon();
     await store.save(settings);
@@ -201,6 +244,10 @@ class AppController extends ChangeNotifier {
     }
     if (needsProject && !hasProject) {
       throw StateError('Open an ESP-IDF project first');
+    }
+    if (needsProject) await neovim.ensureSaved();
+    if (busy || serial.isConnecting) {
+      throw StateError('Another operation is in progress');
     }
     if (needsProject && unsavedEditors.isNotEmpty) {
       throw StateError(
@@ -298,7 +345,7 @@ class AppController extends ChangeNotifier {
     for (final subscription in _subscriptions) {
       await subscription.cancel();
     }
-    await Future.wait([serial.dispose(), jobs.dispose()]);
+    await Future.wait([serial.dispose(), jobs.dispose(), neovim.dispose()]);
   }
 
   @override

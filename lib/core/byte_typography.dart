@@ -19,7 +19,7 @@ class ByteTypography {
   static const body = TextStyle(color: ByteColor.text, fontSize: 14);
 
   static const terminal = TextStyle(
-    color: Colors.white70,
+    color: ByteColor.secondsaryText,
     fontSize: 13,
     fontFamily: "monospace",
   );

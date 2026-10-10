@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
-import 'package:flutter_libserialport/flutter_libserialport.dart';
 import '../models/serial_log_entry.dart';
 import 'device_info.dart';
 import 'serial_transport.dart';
@@ -9,7 +8,7 @@ import 'telemetry_sample.dart';
 
 class SerialService {
   SerialService({SerialTransport Function()? transportFactory})
-    : _factory = transportFactory ?? LibSerialTransport.new;
+    : _factory = transportFactory ?? createSerialTransport;
   final SerialTransport Function() _factory;
   SerialTransport? _transport;
   StreamSubscription<String>? _readSub;
@@ -35,7 +34,7 @@ class SerialService {
   Stream<TelemetrySample> get telemetryStream => _telemetry.stream;
   Stream<DeviceInfo> get deviceInfoStream => _info.stream;
   bool get isConnected => _transport != null;
-  static List<String> availablePorts() => SerialPort.availablePorts;
+  static List<String> availablePorts() => availableSerialPorts();
 
   Future<void> connect(String path, {int baudRate = 115200}) async {
     if (_disposed) throw StateError('Serial service has been disposed');

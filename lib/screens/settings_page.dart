@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../app/app_controller.dart';
+import '../app/settings_store.dart';
+import '../service/external_editor_service.dart';
 import '../core/byte_color.dart';
 import '../widgets/app_controls.dart';
 
@@ -11,9 +13,14 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
   final sdk = TextEditingController();
+  final vscodePath = TextEditingController();
+  final arduinoPath = TextEditingController();
   final baud = TextEditingController();
   final flashBaud = TextEditingController();
   String ending = 'LF';
+  double opacity = 0.94;
+  EditorChoice editor = EditorChoice.builtin;
+  bool neovimClean = false;
   bool initialized = false;
   @override
   void didChangeDependencies() {
@@ -24,6 +31,11 @@ class _SettingsPageState extends State<SettingsPage> {
       baud.text = '${settings.baudRate}';
       flashBaud.text = '${settings.flashBaudRate}';
       ending = settings.lineEnding;
+      opacity = settings.windowOpacity;
+      editor = settings.editor;
+      vscodePath.text = settings.vscodePath;
+      arduinoPath.text = settings.arduinoPath;
+      neovimClean = settings.neovimClean;
       initialized = true;
     }
   }
@@ -31,6 +43,8 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   void dispose() {
     sdk.dispose();
+    vscodePath.dispose();
+    arduinoPath.dispose();
     baud.dispose();
     flashBaud.dispose();
     super.dispose();
@@ -48,6 +62,11 @@ class _SettingsPageState extends State<SettingsPage> {
         baudRate: rate,
         flashBaudRate: upload,
         lineEnding: ending,
+        windowOpacity: opacity,
+        editor: editor,
+        vscodePath: vscodePath.text.trim(),
+        arduinoPath: arduinoPath.text.trim(),
+        neovimClean: neovimClean,
       ),
     );
   }
@@ -62,6 +81,143 @@ class _SettingsPageState extends State<SettingsPage> {
           'Settings',
           'Toolchain and serial preferences are saved on this computer.',
         ),
+        AppPanel(
+          title: 'Editor and plugins',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              DropdownButtonFormField<EditorChoice>(
+                initialValue: editor,
+                decoration: const InputDecoration(
+                  labelText: 'Preferred editor',
+                ),
+                items: [
+                  for (final choice in EditorChoice.values)
+                    DropdownMenuItem(value: choice, child: Text(choice.label)),
+                ],
+                onChanged: app.busy
+                    ? null
+                    : (value) => setState(() => editor = value!),
+              ),
+              const SizedBox(height: 12),
+              Text(editor.description),
+              if (editor.external) ...[
+                const SizedBox(height: 14),
+                TextField(
+                  controller: editor == EditorChoice.vscode
+                      ? vscodePath
+                      : arduinoPath,
+                  decoration: const InputDecoration(
+                    labelText: 'Executable path (optional)',
+                    hintText: 'Leave empty to detect from PATH',
+                    helperText:
+                        'Choose the executable or AppImage, without quotes or arguments.',
+                    helperMaxLines: 2,
+                  ),
+                ),
+                Wrap(
+                  spacing: 12,
+                  children: [
+                    TextButton.icon(
+                      icon: const Icon(Icons.folder_open),
+                      label: const Text('Browse executable'),
+                      onPressed: () async {
+                        final field = editor == EditorChoice.vscode
+                            ? vscodePath
+                            : arduinoPath;
+                        final path = await choosePath(
+                          context,
+                          title: 'Choose editor executable',
+                          initial: field.text,
+                          file: true,
+                        );
+                        if (path != null && mounted) {
+                          setState(() => field.text = path);
+                        }
+                      },
+                    ),
+                    TextButton.icon(
+                      icon: const Icon(Icons.fact_check_outlined),
+                      label: const Text('Check executable'),
+                      onPressed: () => uiAction(context, () async {
+                        final path = await ExternalEditorService().resolve(
+                          editor,
+                          editor == EditorChoice.vscode
+                              ? vscodePath.text
+                              : arduinoPath.text,
+                        );
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Found: $path')),
+                          );
+                        }
+                      }),
+                    ),
+                  ],
+                ),
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.open_in_new),
+                  label: const Text('Save and launch editor'),
+                  onPressed: app.busy
+                      ? null
+                      : () => uiAction(context, () async {
+                          await _save();
+                          await ExternalEditorService().open(app.settings);
+                        }),
+                ),
+                const Text(
+                  'Save files in the external editor before building. ByteLab cannot check its unsaved buffers. Arduino IDE uses its own boards and libraries; this selection does not change ByteLab’s ESP-IDF toolchain.',
+                ),
+              ],
+              if (editor == EditorChoice.neovim)
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Clean Neovim configuration'),
+                  subtitle: const Text(
+                    'Start without your configuration or plugins for troubleshooting. Save buffers before changing this setting.',
+                  ),
+                  value: neovimClean,
+                  onChanged: !app.busy
+                      ? (value) => setState(() => neovimClean = value)
+                      : null,
+                ),
+              TextButton.icon(
+                onPressed: () => app.navigate(8),
+                icon: const Icon(Icons.menu_book_outlined),
+                label: const Text('Open user manual'),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+        AppPanel(
+          title: 'Underlight transparency',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Window opacity · ${(opacity * 100).round()}%'),
+              Slider(
+                value: opacity,
+                min: 0.7,
+                max: 1,
+                divisions: 30,
+                label: '${(opacity * 100).round()}%',
+                onChanged: app.windowOpacitySupported
+                    ? (value) => setState(() => opacity = value)
+                    : null,
+              ),
+              const Text(
+                'Save settings to apply. 100% is opaque. This affects the whole window, including text; desktop blur is controlled by your compositor.',
+              ),
+              if (!app.windowOpacitySupported)
+                const Text(
+                  'Native opacity is available in the Linux desktop build.',
+                  style: TextStyle(color: ByteColor.secondsaryText),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
         AppPanel(
           title: 'ESP-IDF toolchain',
           child: Column(

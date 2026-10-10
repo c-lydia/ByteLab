@@ -206,7 +206,7 @@ class FirmwareOutput extends StatelessWidget {
                     line,
                     line.startsWith('ERROR:') || line.contains('error:')
                         ? ByteColor.error
-                        : const Color(0xffC0D2E2),
+                        : ByteColor.text,
                   ),
                 )
                 .toList(),

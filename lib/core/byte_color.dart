@@ -1,21 +1,30 @@
 import 'package:flutter/material.dart';
 
+/// Underlight palette from dotfiles/.config/hypr/underlight/colors.conf,
+/// Kitty's ANSI colors, and .config/underlight/widgets.css.
 class ByteColor {
-  static const background = Color(0xff080F17);
-  static const surface = Color(0xff101C29);
-  static const surfaceHover = Color(0xff132738);
-  static const border = Color(0xff172A3A);
-  static const text = Colors.white;
-  static const secondsaryText = Color(0xff8FA2B8);
-  static const cyan = Colors.cyanAccent;
-  static const purple = Color(0xff7C3AED);
-  static const success = Colors.greenAccent;
-  static const warning = Colors.orangeAccent;
-  static const panel = Color(0xff0D1722);
-  static const panelLight = Color(0xff132333);
-  static const divider = Color(0xff1B3042);
-  static const mutedText = Color(0xff5E7185);
-  static const error = Color(0xffEF4444);
-  static const info = Color(0xff38BDF8);
-  static const terminal = Color(0xff05090D);
+  static const background = Color(0xff1A1B26);
+  static const surface = Color(0xff24283B);
+  static const surfaceHover = Color(0xff2F354F);
+  static const border = Color(0xff414868);
+  static const text = Color(0xffC0CAF5);
+  static const secondsaryText = Color(0xffA9B1D6);
+  static const blue = Color(0xff7AA2F7);
+  static const cyan = Color(0xff7DCFFF);
+  static const purple = Color(0xffBB9AF7);
+  static const pink = Color(0xffE052A0);
+  static const glowCyan = Color(0xff48CAE4);
+  static const glowViolet = Color(0xff7C4DFF);
+  static const success = Color(0xff9ECE6A);
+  static const warning = Color(0xffE0AF68);
+  static const panel = Color(0xff161822);
+  static const panelLight = surfaceHover;
+  static const divider = border;
+  // Use Underlight's brighter secondary tone for small labels and line numbers.
+  static const mutedText = Color(0xffA9B1D6);
+  static const error = Color(0xffF7768E);
+  static const errorSurface = Color(0xff422835);
+  static const info = blue;
+  static const terminal = Color(0xff15161E);
+  static const shadow = Color(0xff05060C);
 }

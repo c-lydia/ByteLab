@@ -30,13 +30,13 @@ enum LogLevel {
   Color get color {
     switch (this) {
       case LogLevel.error:
-        return const Color(0xffFF5C5C);
+        return ByteColor.error;
       case LogLevel.warn:
-        return const Color(0xffFFC857);
+        return ByteColor.warning;
       case LogLevel.info:
         return ByteColor.cyan;
       case LogLevel.debug:
-        return const Color(0xff8A8FA3);
+        return ByteColor.mutedText;
       case LogLevel.verbose:
         return ByteColor.mutedText;
       case LogLevel.unknown:

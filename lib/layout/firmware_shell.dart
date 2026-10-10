@@ -8,8 +8,10 @@ import '../screens/firmware_pages.dart';
 import '../screens/monitor_page.dart';
 import '../screens/configuration_page.dart';
 import '../screens/tool_pages.dart';
+import '../screens/documentation_page.dart';
 import '../screens/settings_page.dart';
 import '../widgets/app_controls.dart';
+import '../widgets/bytelab_logo.dart';
 
 class FirmwareShell extends StatefulWidget {
   const FirmwareShell({super.key});
@@ -25,6 +27,12 @@ class _FirmwareShellState extends State<FirmwareShell> {
     lifecycle = AppLifecycleListener(
       onExitRequested: () async {
         final app = AppScope.of(context);
+        try {
+          await app.neovim.refreshModified();
+        } catch (_) {
+          // Unknown Neovim state is treated as potentially unsaved.
+        }
+        if (!mounted) return AppExitResponse.cancel;
         if (app.unsavedEditors.isNotEmpty || app.busy) {
           final leave =
               await showDialog<bool>(
@@ -125,11 +133,7 @@ class _FirmwareShellState extends State<FirmwareShell> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(
-                            Icons.memory,
-                            color: ByteColor.cyan,
-                            size: 32,
-                          ),
+                          const ByteLabLogo(),
                           if (wide)
                             const Padding(
                               padding: EdgeInsets.only(left: 12),
@@ -156,7 +160,7 @@ class _FirmwareShellState extends State<FirmwareShell> {
                                 message: labels[i],
                                 child: Material(
                                   color: app.selectedPage == i
-                                      ? ByteColor.surfaceHover
+                                      ? ByteColor.pink.withValues(alpha: 0.18)
                                       : Colors.transparent,
                                   borderRadius: BorderRadius.circular(10),
                                   child: InkWell(
@@ -189,7 +193,7 @@ class _FirmwareShellState extends State<FirmwareShell> {
                                                 overflow: TextOverflow.ellipsis,
                                                 style: TextStyle(
                                                   color: app.selectedPage == i
-                                                      ? Colors.white
+                                                      ? ByteColor.text
                                                       : ByteColor
                                                             .secondsaryText,
                                                 ),
@@ -309,6 +313,18 @@ class _FirmwareShellState extends State<FirmwareShell> {
                             icon: const Icon(Icons.terminal),
                           ),
                         ],
+                      ),
+                    ),
+                    Container(
+                      height: 2,
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            ByteColor.glowCyan,
+                            ByteColor.glowViolet,
+                            ByteColor.pink,
+                          ],
+                        ),
                       ),
                     ),
                     if (app.notice != null)

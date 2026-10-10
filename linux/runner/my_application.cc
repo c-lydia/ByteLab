@@ -1,4 +1,5 @@
 #include "my_application.h"
+#include <cmath>
 
 #include <flutter_linux/flutter_linux.h>
 #ifdef GDK_WINDOWING_X11
@@ -17,6 +18,28 @@ G_DEFINE_TYPE(MyApplication, my_application, GTK_TYPE_APPLICATION)
 // Called when first Flutter frame received.
 static void first_frame_cb(MyApplication* self, FlView* view) {
   gtk_widget_show(gtk_widget_get_toplevel(GTK_WIDGET(view)));
+}
+
+// Adjust the native window, so transparency also includes embedded terminals.
+static void window_method_call(FlMethodChannel*, FlMethodCall* call,
+                               gpointer user_data) {
+  if (g_strcmp0(fl_method_call_get_name(call), "setOpacity") != 0) {
+    fl_method_call_respond_not_implemented(call, nullptr);
+    return;
+  }
+  FlValue* args = fl_method_call_get_args(call);
+  if (fl_value_get_type(args) != FL_VALUE_TYPE_FLOAT) {
+    fl_method_call_respond_error(call, "invalid-opacity", "Expected a number", nullptr, nullptr);
+    return;
+  }
+  const double opacity = fl_value_get_float(args);
+  if (!std::isfinite(opacity) || opacity < 0.7 || opacity > 1.0) {
+    fl_method_call_respond_error(call, "invalid-opacity", "Use 0.7 to 1.0", nullptr, nullptr);
+    return;
+  }
+  gtk_widget_set_opacity(GTK_WIDGET(user_data), opacity);
+  g_autoptr(FlValue) result = fl_value_new_bool(true);
+  fl_method_call_respond_success(call, result, nullptr);
 }
 
 // Implements GApplication::activate.
@@ -52,6 +75,15 @@ static void my_application_activate(GApplication* application) {
     gtk_window_set_title(window, "ByteLab");
   }
 
+  // Locate the branded icon inside the relocatable Linux release bundle.
+  g_autofree gchar* executable = g_file_read_link("/proc/self/exe", nullptr);
+  if (executable != nullptr) {
+    g_autofree gchar* directory = g_path_get_dirname(executable);
+    g_autofree gchar* icon_path =
+        g_build_filename(directory, "data", "bytelab-icon.png", nullptr);
+    gtk_window_set_icon_from_file(window, icon_path, nullptr);
+  }
+
   gtk_window_set_default_size(window, 1360, 900);
   gtk_widget_set_size_request(GTK_WIDGET(window), 1000, 720);
 
@@ -75,6 +107,12 @@ static void my_application_activate(GApplication* application) {
   gtk_widget_realize(GTK_WIDGET(view));
 
   fl_register_plugins(FL_PLUGIN_REGISTRY(view));
+  g_autoptr(FlStandardMethodCodec) codec = fl_standard_method_codec_new();
+  g_autoptr(FlMethodChannel) window_channel = fl_method_channel_new(
+      fl_engine_get_binary_messenger(fl_view_get_engine(view)),
+      "bytelab/window", FL_METHOD_CODEC(codec));
+  fl_method_channel_set_method_call_handler(
+      window_channel, window_method_call, g_object_ref(window), g_object_unref);
 
   gtk_widget_grab_focus(GTK_WIDGET(view));
 }

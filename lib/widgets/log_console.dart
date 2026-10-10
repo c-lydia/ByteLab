@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../core/byte_color.dart';
 
 class ConsoleLine {
-  const ConsoleLine(this.text, [this.color = const Color(0xffC0D2E2)]);
+  const ConsoleLine(this.text, [this.color = ByteColor.text]);
   final String text;
   final Color color;
 }

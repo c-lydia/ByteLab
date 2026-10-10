@@ -2,6 +2,12 @@
   "configVersion": 2,
   "packages": [
     {
+      "name": "archive",
+      "rootUri": "file:///home/chheng-lydia/.pub-cache/hosted/pub.dev/archive-4.0.9",
+      "packageUri": "lib/",
+      "languageVersion": "3.0"
+    },
+    {
       "name": "async",
       "rootUri": "file:///home/chheng-lydia/.pub-cache/hosted/pub.dev/async-2.13.1",
       "packageUri": "lib/",
@@ -32,6 +38,12 @@
       "languageVersion": "3.4"
     },
     {
+      "name": "convert",
+      "rootUri": "file:///home/chheng-lydia/.pub-cache/hosted/pub.dev/convert-3.1.2",
+      "packageUri": "lib/",
+      "languageVersion": "3.4"
+    },
+    {
       "name": "cupertino_icons",
       "rootUri": "file:///home/chheng-lydia/.pub-cache/hosted/pub.dev/cupertino_icons-1.0.9",
       "packageUri": "lib/",
@@ -42,6 +54,12 @@
       "rootUri": "file:///home/chheng-lydia/.pub-cache/hosted/pub.dev/dylib-0.3.3",
       "packageUri": "lib/",
       "languageVersion": "2.12"
+    },
+    {
+      "name": "equatable",
+      "rootUri": "file:///home/chheng-lydia/.pub-cache/hosted/pub.dev/equatable-2.1.0",
+      "packageUri": "lib/",
+      "languageVersion": "3.0"
     },
     {
       "name": "fake_async",
@@ -59,7 +77,7 @@
       "name": "flutter",
       "rootUri": "file:///home/chheng-lydia/projects/flutter/packages/flutter",
       "packageUri": "lib/",
-      "languageVersion": "3.10"
+      "languageVersion": "3.11"
     },
     {
       "name": "flutter_libserialport",
@@ -74,10 +92,16 @@
       "languageVersion": "3.8"
     },
     {
+      "name": "flutter_pty",
+      "rootUri": "file:///home/chheng-lydia/.pub-cache/hosted/pub.dev/flutter_pty-0.4.2",
+      "packageUri": "lib/",
+      "languageVersion": "3.0"
+    },
+    {
       "name": "flutter_test",
       "rootUri": "file:///home/chheng-lydia/projects/flutter/packages/flutter_test",
       "packageUri": "lib/",
-      "languageVersion": "3.10"
+      "languageVersion": "3.11"
     },
     {
       "name": "leak_tracker",
@@ -111,9 +135,9 @@
     },
     {
       "name": "matcher",
-      "rootUri": "file:///home/chheng-lydia/.pub-cache/hosted/pub.dev/matcher-0.12.19",
+      "rootUri": "file:///home/chheng-lydia/.pub-cache/hosted/pub.dev/matcher-0.12.20",
       "packageUri": "lib/",
-      "languageVersion": "3.7"
+      "languageVersion": "3.10"
     },
     {
       "name": "material_color_utilities",
@@ -123,7 +147,7 @@
     },
     {
       "name": "meta",
-      "rootUri": "file:///home/chheng-lydia/.pub-cache/hosted/pub.dev/meta-1.18.0",
+      "rootUri": "file:///home/chheng-lydia/.pub-cache/hosted/pub.dev/meta-1.19.0",
       "packageUri": "lib/",
       "languageVersion": "3.5"
     },
@@ -140,10 +164,22 @@
       "languageVersion": "3.2"
     },
     {
+      "name": "posix",
+      "rootUri": "file:///home/chheng-lydia/.pub-cache/hosted/pub.dev/posix-6.5.0",
+      "packageUri": "lib/",
+      "languageVersion": "3.0"
+    },
+    {
+      "name": "quiver",
+      "rootUri": "file:///home/chheng-lydia/.pub-cache/hosted/pub.dev/quiver-3.2.2",
+      "packageUri": "lib/",
+      "languageVersion": "2.17"
+    },
+    {
       "name": "sky_engine",
       "rootUri": "file:///home/chheng-lydia/projects/flutter/bin/cache/pkg/sky_engine",
       "packageUri": "lib/",
-      "languageVersion": "3.10"
+      "languageVersion": "3.11"
     },
     {
       "name": "source_span",
@@ -177,9 +213,9 @@
     },
     {
       "name": "test_api",
-      "rootUri": "file:///home/chheng-lydia/.pub-cache/hosted/pub.dev/test_api-0.7.11",
+      "rootUri": "file:///home/chheng-lydia/.pub-cache/hosted/pub.dev/test_api-0.7.12",
       "packageUri": "lib/",
-      "languageVersion": "3.7"
+      "languageVersion": "3.10"
     },
     {
       "name": "typed_data",
@@ -189,15 +225,33 @@
     },
     {
       "name": "vector_math",
-      "rootUri": "file:///home/chheng-lydia/.pub-cache/hosted/pub.dev/vector_math-2.2.0",
+      "rootUri": "file:///home/chheng-lydia/.pub-cache/hosted/pub.dev/vector_math-2.4.3",
       "packageUri": "lib/",
-      "languageVersion": "3.1"
+      "languageVersion": "3.10"
     },
     {
       "name": "vm_service",
       "rootUri": "file:///home/chheng-lydia/.pub-cache/hosted/pub.dev/vm_service-15.2.0",
       "packageUri": "lib/",
       "languageVersion": "3.5"
+    },
+    {
+      "name": "web",
+      "rootUri": "file:///home/chheng-lydia/.pub-cache/hosted/pub.dev/web-1.1.1",
+      "packageUri": "lib/",
+      "languageVersion": "3.4"
+    },
+    {
+      "name": "xterm",
+      "rootUri": "file:///home/chheng-lydia/.pub-cache/hosted/pub.dev/xterm-4.0.0",
+      "packageUri": "lib/",
+      "languageVersion": "3.0"
+    },
+    {
+      "name": "zmodem",
+      "rootUri": "file:///home/chheng-lydia/.pub-cache/hosted/pub.dev/zmodem-0.0.6",
+      "packageUri": "lib/",
+      "languageVersion": "2.18"
     },
     {
       "name": "bytelab",
@@ -207,8 +261,8 @@
     }
   ],
   "generator": "pub",
-  "generatorVersion": "3.12.2",
+  "generatorVersion": "3.13.5",
   "flutterRoot": "file:///home/chheng-lydia/projects/flutter",
-  "flutterVersion": "3.44.5",
+  "flutterVersion": "3.47.6",
   "pubCache": "file:///home/chheng-lydia/.pub-cache"
 }

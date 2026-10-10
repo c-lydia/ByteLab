@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:bytelab/widgets/source_editor.dart';
 import 'package:flutter/material.dart';
+import 'package:bytelab/service/window_appearance.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:bytelab/main.dart';
 import 'package:bytelab/app/app_controller.dart';
@@ -20,6 +21,18 @@ class MemorySettingsStore extends SettingsStore {
 }
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  setUp(() {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+          WindowAppearance.channel,
+          (call) async => true,
+        );
+  });
+  tearDown(() {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(WindowAppearance.channel, null);
+  });
   for (final size in [const Size(1360, 900), const Size(1000, 720)]) {
     testWidgets('all ten sections render and navigate at $size', (
       tester,

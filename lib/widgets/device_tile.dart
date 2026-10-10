@@ -112,7 +112,7 @@ class _DeviceTileState extends State<DeviceTile>
                 margin: const EdgeInsets.only(right: 8),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: widget.isOnline ? Colors.greenAccent : Colors.grey,
+                  color: widget.isOnline ? ByteColor.success : ByteColor.mutedText,
                 ),
               ),
               AnimatedSwitcher(

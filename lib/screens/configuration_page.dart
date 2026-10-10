@@ -3,6 +3,7 @@ import '../app/app_controller.dart';
 import '../core/byte_color.dart';
 import '../widgets/app_controls.dart';
 import '../widgets/source_editor.dart';
+import '../widgets/code_block.dart';
 
 class ConfigurationPage extends StatefulWidget {
   const ConfigurationPage({super.key});
@@ -11,7 +12,7 @@ class ConfigurationPage extends StatefulWidget {
 }
 
 class _ConfigurationPageState extends State<ConfigurationPage> {
-  final editor = TextEditingController();
+  final editor = CodeEditingController(language: 'config');
   AppController? app;
   String? root, path, error;
   String original = '';
@@ -161,6 +162,22 @@ class _ConfigurationPageState extends State<ConfigurationPage> {
                   icon: const Icon(Icons.save, size: 17),
                   label: Text(dirty ? 'Save changes •' : 'Saved'),
                 ),
+                if (controller.settings.useNeovim)
+                  OutlinedButton.icon(
+                    onPressed:
+                        path == null || loading || dirty || controller.busy
+                        ? null
+                        : () => uiAction(context, () async {
+                            await controller.neovim.openFile(
+                              controller.project.root!,
+                              path!,
+                              clean: controller.settings.neovimClean,
+                            );
+                            controller.navigate(1);
+                          }),
+                    icon: const Icon(Icons.terminal, size: 16),
+                    label: const Text('Edit in Neovim'),
+                  ),
                 OutlinedButton(
                   onPressed: controller.busy
                       ? null

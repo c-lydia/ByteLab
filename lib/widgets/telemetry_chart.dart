@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../core/byte_color.dart';
 
 import '../service/metric_registry.dart';
 import '../models/serial_log_entry.dart';
@@ -67,7 +68,10 @@ class _Legend extends StatelessWidget {
               const SizedBox(width: 5),
               Text(
                 MetricRegistry.forId(id).label,
-                style: const TextStyle(color: Colors.white54, fontSize: 11),
+                style: const TextStyle(
+                  color: ByteColor.mutedText,
+                  fontSize: 11,
+                ),
               ),
             ],
           ),
@@ -144,8 +148,8 @@ class _ChartPainter extends CustomPainter {
     for (final marker in markers) {
       final x = xFor(marker.time);
       final color = marker.level == LogLevel.error
-          ? const Color(0xffFF5C5C)
-          : const Color(0xffFFC857);
+          ? ByteColor.error
+          : ByteColor.warning;
 
       canvas.drawLine(
         Offset(x, 0),

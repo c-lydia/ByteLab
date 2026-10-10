@@ -1,5 +1,5 @@
 name: bytelab
-description: "Linux workspace for ESP-IDF projects, firmware builds, flashing, and serial telemetry."
+description: "Desktop and browser workspace for ESP-IDF projects, documentation, and serial telemetry."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -37,6 +37,10 @@ dependencies:
   flutter_libserialport: ^0.6.0
   async: ^2.13.1
   typed_data: ^1.4.0
+  web: ^1.1.1
+  archive: ^4.0.9
+  xterm: ^4.0.0
+  flutter_pty: ^0.4.2
 
 dev_dependencies:
   flutter_test:
@@ -59,6 +63,8 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+  assets:
+    - assets/branding/bytelab-icon.png
 
   # To add assets to your application, add an assets section, like this:
   # assets:

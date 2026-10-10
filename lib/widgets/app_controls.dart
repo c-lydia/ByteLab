@@ -19,7 +19,7 @@ Future<void> uiAction(
       messenger.showSnackBar(
         SnackBar(
           content: Text(error.toString()),
-          backgroundColor: const Color(0xff7f2936),
+          backgroundColor: ByteColor.errorSurface,
         ),
       );
     }
@@ -79,31 +79,70 @@ class AppPanel extends StatelessWidget {
   final String? title;
   final EdgeInsets padding;
   @override
-  Widget build(BuildContext context) => Material(
-    color: ByteColor.surface,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(14),
-      side: const BorderSide(color: ByteColor.border),
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(1),
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(15),
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          ByteColor.glowCyan.withValues(alpha: 0.55),
+          ByteColor.glowViolet.withValues(alpha: 0.35),
+          ByteColor.pink.withValues(alpha: 0.45),
+        ],
+      ),
+      boxShadow: [
+        BoxShadow(
+          color: ByteColor.shadow.withValues(alpha: 0.18),
+          blurRadius: 18,
+          offset: const Offset(0, 6),
+        ),
+      ],
     ),
-    child: Padding(
-      padding: padding,
-      child: title == null
-          ? child
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  title!,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 16,
-                  ),
+    child: Material(
+      color: ByteColor.surface,
+      borderRadius: BorderRadius.circular(14),
+      clipBehavior: Clip.antiAlias,
+      child: Ink(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color.alphaBlend(
+                ByteColor.glowCyan.withValues(alpha: 0.05),
+                ByteColor.surface,
+              ),
+              ByteColor.surface,
+              Color.alphaBlend(
+                ByteColor.pink.withValues(alpha: 0.04),
+                ByteColor.surface,
+              ),
+            ],
+          ),
+        ),
+        child: Padding(
+          padding: padding,
+          child: title == null
+              ? child
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      title!,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    child,
+                  ],
                 ),
-                const SizedBox(height: 16),
-                child,
-              ],
-            ),
+        ),
+      ),
     ),
   );
 }
@@ -407,7 +446,7 @@ class _PathDialogState extends State<_PathDialog> {
               padding: const EdgeInsets.all(8),
               child: Text(
                 error!,
-                style: const TextStyle(color: Colors.orangeAccent),
+                style: const TextStyle(color: ByteColor.warning),
               ),
             ),
           const SizedBox(height: 12),
